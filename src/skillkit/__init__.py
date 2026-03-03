@@ -125,6 +125,12 @@ from skillkit.models import (
 from skillkit.prompts import PromptTemplate, PromptTemplateLoader
 from skillkit.runtime import BashRuntime, CodeModeRuntime, SkillRuntime
 
+# Optional: BoxLite sandbox runtime
+try:
+    from skillkit.runtime.boxlite import BoxLiteRuntime, SecurityLevel
+except ImportError:
+    pass
+
 # Optional: memory module
 try:
     from skillkit.memory import MemoryConfig, OpenVikingClient, setup_memory
@@ -230,6 +236,8 @@ __all__ = [
     "SkillRuntime",
     "BashRuntime",
     "CodeModeRuntime",
+    "BoxLiteRuntime",
+    "SecurityLevel",
     # Adapters
     "AdapterRegistry",
     "AdapterFactory",
