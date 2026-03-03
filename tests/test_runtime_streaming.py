@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import sys
-from unittest.mock import AsyncMock
+import time
 
 import pytest
 
-from skillkit.runtime.base import ExecutionResult, SkillRuntime, OutputCallback
+from skillkit.runtime.base import ExecutionResult
 from skillkit.runtime.bash import BashRuntime
-
 
 # ---------------------------------------------------------------------------
 # BashRuntime basic execution
@@ -98,7 +96,7 @@ class TestBashRuntimeStreaming:
     async def test_streaming_stderr_not_in_callback(self, runtime: BashRuntime) -> None:
         """on_output should receive stdout only, not stderr."""
         lines: list[str] = []
-        result = await runtime.execute(
+        await runtime.execute(
             "echo stdout_msg && echo stderr_msg >&2",
             on_output=lambda line: lines.append(line),
         )
@@ -193,6 +191,68 @@ class TestBashRuntimeAbort:
         result = await runtime.execute("echo normal", abort_signal=abort)
         assert result.success
         assert "normal" in result.output
+
+
+class TestBashRuntimeTimingRegression:
+    @pytest.mark.asyncio
+    async def test_echo_with_abort_signal_finishes_quickly(self) -> None:
+        runtime = BashRuntime(default_timeout=5.0)
+        abort = asyncio.Event()
+        start = time.monotonic()
+
+        result = await runtime.execute("echo hi", abort_signal=abort)
+
+        elapsed = time.monotonic() - start
+        assert result.success
+        assert "hi" in result.output
+        assert elapsed < 1.0
+
+    @pytest.mark.asyncio
+    async def test_sleep_two_seconds_matches_real_duration(self) -> None:
+        runtime = BashRuntime(default_timeout=10.0)
+        abort = asyncio.Event()
+        start = time.monotonic()
+
+        result = await runtime.execute("sleep 2; echo hi", abort_signal=abort)
+
+        elapsed = time.monotonic() - start
+        assert result.success
+        assert "hi" in result.output
+        assert 1.7 <= elapsed <= 3.5
+
+    @pytest.mark.asyncio
+    async def test_timeout_still_applies_with_abort_signal(self) -> None:
+        runtime = BashRuntime(default_timeout=10.0)
+        abort = asyncio.Event()
+        start = time.monotonic()
+
+        result = await runtime.execute("sleep 60", timeout=3.0, abort_signal=abort)
+
+        elapsed = time.monotonic() - start
+        assert not result.success
+        assert "timed out" in (result.error or "")
+        assert 2.5 <= elapsed <= 5.0
+
+    @pytest.mark.asyncio
+    async def test_abort_during_execution_returns_quickly(self) -> None:
+        runtime = BashRuntime(default_timeout=10.0)
+        abort = asyncio.Event()
+
+        async def trigger_abort() -> None:
+            await asyncio.sleep(0.3)
+            abort.set()
+
+        abort_task = asyncio.create_task(trigger_abort())
+        start = time.monotonic()
+
+        result = await runtime.execute("sleep 60", abort_signal=abort)
+        await abort_task
+
+        elapsed = time.monotonic() - start
+        assert not result.success
+        assert result.exit_code == -2
+        assert "Aborted" in (result.error or "")
+        assert elapsed < 2.0
 
 
 # ---------------------------------------------------------------------------

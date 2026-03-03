@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from contextlib import suppress
 
 from skillkit.runtime.base import ExecutionResult, OutputCallback, SkillRuntime
 
@@ -128,6 +129,7 @@ class BashRuntime(SkillRuntime):
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []
         aborted = False
+        abort_task: asyncio.Task[None] | None = None
 
         async def _read_stream(
             stream: asyncio.StreamReader | None,
@@ -173,20 +175,21 @@ class BashRuntime(SkillRuntime):
                     duration_ms=timer.elapsed_ms(),
                 )
 
-            # Run readers + abort watcher concurrently with timeout
-            tasks = [
+            # Start stdout/stderr readers; abort watcher runs independently so it
+            # cannot keep the wait() call pending until timeout.
+            reader_tasks = [
                 asyncio.create_task(_read_stream(process.stdout, stdout_lines, on_output)),
                 asyncio.create_task(_read_stream(process.stderr, stderr_lines, None)),
             ]
-            abort_task = None
             if abort_signal is not None:
                 abort_task = asyncio.create_task(_watch_abort())
-                tasks.append(abort_task)
 
-            done, pending = await asyncio.wait(
-                tasks,
+            _, pending = await asyncio.wait(
+                reader_tasks,
                 timeout=timeout,
             )
+
+            readers_done = len(pending) == 0
 
             # Cancel any pending tasks
             for t in pending:
@@ -197,10 +200,6 @@ class BashRuntime(SkillRuntime):
                     pass
 
             # Check if we timed out (readers didn't finish)
-            readers_done = all(
-                t.done() for t in tasks[:2]
-            )
-
             if not readers_done and not aborted:
                 # Timeout
                 try:
@@ -253,6 +252,12 @@ class BashRuntime(SkillRuntime):
                 exit_code=-1,
                 duration_ms=timer.elapsed_ms(),
             )
+        finally:
+            if abort_task is not None:
+                if not abort_task.done():
+                    abort_task.cancel()
+                with suppress(asyncio.CancelledError, Exception):
+                    await abort_task
 
     async def _collect_simple(
         self,

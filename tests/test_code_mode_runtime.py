@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 
 import pytest
 
-from skillkit.runtime.base import ExecutionResult
 from skillkit.runtime.code_mode import CodeModeRuntime
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -404,6 +403,78 @@ class TestCodeModeAbort:
         )
         assert not result.success
         assert "Aborted" in (result.error or "")
+
+
+class TestCodeModeTimingRegression:
+    @pytest.mark.asyncio
+    async def test_subprocess_quick_code_with_abort_signal_finishes_quickly(self) -> None:
+        rt = CodeModeRuntime(sandbox="subprocess", default_timeout=5.0)
+        abort = asyncio.Event()
+        start = time.monotonic()
+
+        result = await rt.execute("print('hi')", abort_signal=abort)
+
+        elapsed = time.monotonic() - start
+        assert result.success
+        assert "hi" in result.output
+        assert elapsed < 1.5
+
+    @pytest.mark.asyncio
+    async def test_subprocess_sleep_two_seconds_matches_real_duration(self) -> None:
+        rt = CodeModeRuntime(sandbox="subprocess", default_timeout=10.0)
+        abort = asyncio.Event()
+        start = time.monotonic()
+
+        result = await rt.execute(
+            "import time; time.sleep(2); print('hi')",
+            abort_signal=abort,
+        )
+
+        elapsed = time.monotonic() - start
+        assert result.success
+        assert "hi" in result.output
+        assert 1.7 <= elapsed <= 4.0
+
+    @pytest.mark.asyncio
+    async def test_subprocess_timeout_still_applies_with_abort_signal(self) -> None:
+        rt = CodeModeRuntime(sandbox="subprocess", default_timeout=10.0)
+        abort = asyncio.Event()
+        start = time.monotonic()
+
+        result = await rt.execute(
+            "import time; time.sleep(60)",
+            timeout=3.0,
+            abort_signal=abort,
+        )
+
+        elapsed = time.monotonic() - start
+        assert not result.success
+        assert "timed out" in (result.error or "")
+        assert 2.5 <= elapsed <= 5.5
+
+    @pytest.mark.asyncio
+    async def test_subprocess_abort_returns_quickly(self) -> None:
+        rt = CodeModeRuntime(sandbox="subprocess", default_timeout=10.0)
+        abort = asyncio.Event()
+
+        async def set_abort_soon() -> None:
+            await asyncio.sleep(0.3)
+            abort.set()
+
+        abort_task = asyncio.create_task(set_abort_soon())
+        start = time.monotonic()
+
+        result = await rt.execute(
+            "import time; time.sleep(60)",
+            abort_signal=abort,
+        )
+        await abort_task
+
+        elapsed = time.monotonic() - start
+        assert not result.success
+        assert result.exit_code == -2
+        assert "Aborted" in (result.error or "")
+        assert elapsed < 2.5
 
 
 # ---------------------------------------------------------------------------

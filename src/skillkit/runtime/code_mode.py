@@ -628,6 +628,7 @@ if result is not _UNSET:
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []
         aborted = False
+        abort_task: asyncio.Task[None] | None = None
 
         async def _read_stream(
             stream: asyncio.StreamReader | None,
@@ -670,14 +671,18 @@ if result is not _UNSET:
                     duration_ms=timer.elapsed_ms(),
                 )
 
-            tasks = [
+            # Start stdout/stderr readers; abort watcher runs independently so it
+            # cannot keep the wait() call pending until timeout.
+            reader_tasks = [
                 asyncio.create_task(_read_stream(process.stdout, stdout_lines, on_output)),
                 asyncio.create_task(_read_stream(process.stderr, stderr_lines, None)),
             ]
             if abort_signal is not None:
-                tasks.append(asyncio.create_task(_watch_abort()))
+                abort_task = asyncio.create_task(_watch_abort())
 
-            done, pending = await asyncio.wait(tasks, timeout=timeout)
+            _, pending = await asyncio.wait(reader_tasks, timeout=timeout)
+
+            readers_done = len(pending) == 0
 
             for t in pending:
                 t.cancel()
@@ -685,8 +690,6 @@ if result is not _UNSET:
                     await t
                 except (asyncio.CancelledError, Exception):
                     pass
-
-            readers_done = all(t.done() for t in tasks[:2])
 
             if not readers_done and not aborted:
                 try:
@@ -737,6 +740,12 @@ if result is not _UNSET:
                 exit_code=-1,
                 duration_ms=timer.elapsed_ms(),
             )
+        finally:
+            if abort_task is not None:
+                if not abort_task.done():
+                    abort_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError, Exception):
+                    await abort_task
 
     # ------------------------------------------------------------------
     # Helpers
