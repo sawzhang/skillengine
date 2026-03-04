@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from skillkit.tools.apply_patch import ApplyPatchTool
 from skillkit.tools.bash import BashTool
-from skillkit.tools.edit import EditTool
 from skillkit.tools.find import FindTool
 from skillkit.tools.grep import GrepTool
 from skillkit.tools.ls import LsTool
@@ -16,7 +16,7 @@ __all__ = [
     "ToolDefinition",
     "ReadTool",
     "WriteTool",
-    "EditTool",
+    "ApplyPatchTool",
     "BashTool",
     "GrepTool",
     "FindTool",
@@ -28,11 +28,11 @@ __all__ = [
 
 
 def create_coding_tools(cwd: str | None = None) -> list[ToolDefinition]:
-    """Create the standard coding tools (read, write, edit, bash)."""
+    """Create the standard coding tools (read, write, apply_patch, bash)."""
     return [
         ReadTool(cwd).definition(),
         WriteTool(cwd).definition(),
-        EditTool(cwd).definition(),
+        ApplyPatchTool(cwd).definition(),
         BashTool(cwd).definition(),
     ]
 
@@ -52,7 +52,7 @@ def create_all_tools(cwd: str | None = None) -> dict[str, ToolDefinition]:
     tools = [
         ReadTool(cwd),
         WriteTool(cwd),
-        EditTool(cwd),
+        ApplyPatchTool(cwd),
         BashTool(cwd),
         GrepTool(cwd),
         FindTool(cwd),

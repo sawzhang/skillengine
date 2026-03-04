@@ -66,6 +66,7 @@ from skillkit.models import (
     SkillSnapshot,
     TextContent,
 )
+from skillkit.tools.apply_patch import ApplyPatchTool
 
 # Auto-load .env file from current directory or parent directories
 load_dotenv(override=True)
@@ -617,6 +618,44 @@ class AgentRunner:
                     },
                 },
             },
+            {
+                "type": "function",
+                "function": {
+                    "name": "apply_patch",
+                    "description": (
+                        "Apply one file mutation using an operation payload. "
+                        "Supports create_file, update_file, and delete_file."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "operation": {
+                                "type": "object",
+                                "description": "Apply patch operation object.",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["create_file", "update_file", "delete_file"],
+                                    },
+                                    "path": {
+                                        "type": "string",
+                                        "description": "Target file path.",
+                                    },
+                                    "diff": {
+                                        "type": "string",
+                                        "description": (
+                                            "Diff body for create/update, "
+                                            "for example '-old\\n+new'."
+                                        ),
+                                    },
+                                },
+                                "required": ["type", "path"],
+                            },
+                        },
+                        "required": ["operation"],
+                    },
+                },
+            },
         ]
 
         # Add skill tool for on-demand skill loading
@@ -1009,6 +1048,17 @@ class AgentRunner:
                 return text
             except Exception as e:
                 return f"Error reading file: {e}"
+
+        if name == "apply_patch":
+            operation = args.get("operation")
+            workspace_root = getattr(self, "default_cwd", None)
+            enforce_workspace_boundary = bool(workspace_root)
+            tool_cwd = str(workspace_root) if workspace_root else os.getcwd()
+            tool = ApplyPatchTool(
+                cwd=tool_cwd,
+                enforce_workspace_boundary=enforce_workspace_boundary,
+            )
+            return await tool.execute({"operation": operation})
 
         # Dispatch skill tool (on-demand loading)
         if name == "skill":

@@ -90,10 +90,11 @@ class TestSetupMemory:
             assert "save_memory" in tool_names
             assert "explore_memory" in tool_names
             assert "add_knowledge" in tool_names
-            # Plus the 4 hardcoded tools (execute, execute_script, write, read)
+            # Plus the 5 hardcoded tools (execute, execute_script, write, read, apply_patch)
             assert "execute" in tool_names
             assert "execute_script" in tool_names
-            assert len(tools) == 8
+            assert "apply_patch" in tool_names
+            assert len(tools) == 9
 
     @pytest.mark.asyncio
     async def test_registers_event_hooks(self, runner):
