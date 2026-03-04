@@ -316,6 +316,9 @@ class TestApplyPatchTool:
         assert tool.name == "apply_patch"
         assert "top-level fields" in tool.description.lower()
         assert "diff is required" in tool.description.lower()
+        assert "[+-<space>]line format" in tool.description
+        assert "contain one complete line" in tool.description.lower()
+        assert "separated by '\\n'" in tool.description
         assert "inserts content at the top of the file" in tool.description.lower()
         assert "include context using ' ' or '-'" in tool.description.lower()
         assert "original='b\\nc\\n'" in tool.description
