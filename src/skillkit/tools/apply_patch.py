@@ -33,49 +33,47 @@ class ApplyPatchTool(BaseTool):
     @property
     def description(self) -> str:
         return (
-            "Apply one file mutation via apply_patch operation payload. "
-            "Supports create_file, update_file, and delete_file."
+            "Apply a single file patch operation. Provide type as "
+            "create_file/update_file/delete_file and path as the target file path. "
+            "For create_file and update_file, diff is required and must use "
+            "line prefixes (+ to add, - to remove, space for context in updates). "
+            "For create_file, all diff lines must start with +."
         )
 
     @property
     def parameters(self) -> dict[str, Any]:
         return {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
-                "operation": {
-                    "type": "object",
-                    "description": "OpenAI-style apply_patch operation payload.",
-                    "properties": {
-                        "type": {
-                            "type": "string",
-                            "enum": ["create_file", "update_file", "delete_file"],
-                            "description": "Type of mutation to apply.",
-                        },
-                        "path": {
-                            "type": "string",
-                            "description": "Target file path.",
-                        },
-                        "diff": {
-                            "type": "string",
-                            "description": (
-                                "Unified-like diff body for create/update operations, "
-                                "for example '-old\\n+new'."
-                            ),
-                        },
-                    },
-                    "required": ["type", "path"],
+                "type": {
+                    "type": "string",
+                    "enum": ["create_file", "update_file", "delete_file"],
+                    "description": "Type of mutation to apply.",
+                },
+                "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Target file path.",
+                },
+                "diff": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": (
+                        "Unified-like diff body for create/update operations, "
+                        "for example '-old\\n+new'."
+                    ),
                 },
             },
-            "required": ["operation"],
+            "required": ["type", "path"],
         }
 
     async def execute(self, args: dict[str, Any]) -> str:
-        operation_raw = args.get("operation")
-        if not isinstance(operation_raw, dict):
-            return "Error: operation is required and must be a JSON object."
+        if not isinstance(args, dict):
+            return "Error: apply_patch arguments must be a JSON object."
 
         try:
-            operation = self._coerce_operation(operation_raw)
+            operation = self._coerce_operation(args)
             result = self._apply_operation(operation)
         except ValueError as exc:
             return f"Error: {exc}"

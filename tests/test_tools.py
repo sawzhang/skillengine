@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
-
-import pytest
 
 from skillkit.tools import (
-    ToolRegistry,
-    ToolDefinition,
-    ReadTool,
-    WriteTool,
     ApplyPatchTool,
+    ReadTool,
+    ToolDefinition,
+    ToolRegistry,
+    WriteTool,
+    create_all_tools,
     create_coding_tools,
     create_read_only_tools,
-    create_all_tools,
 )
 
 
@@ -319,6 +316,20 @@ class TestApplyPatchTool:
         assert tool.name == "apply_patch"
         assert "patch" in tool.description.lower()
 
+    def test_parameters_schema_is_strict_and_conditional(self) -> None:
+        tool = ApplyPatchTool()
+        params = tool.parameters
+
+        assert params["type"] == "object"
+        assert params["required"] == ["type", "path"]
+        assert params["additionalProperties"] is False
+
+        op_props = params["properties"]
+        assert op_props["type"]["enum"] == ["create_file", "update_file", "delete_file"]
+        assert op_props["path"]["minLength"] == 1
+        assert op_props["diff"]["minLength"] == 1
+        assert "allOf" not in params
+
     async def test_execute_update_file(self, tmp_path: Path) -> None:
         test_file = tmp_path / "code.py"
         test_file.write_text("def hello():\n    return 'hello'\n", encoding="utf-8")
@@ -326,11 +337,9 @@ class TestApplyPatchTool:
         tool = ApplyPatchTool(cwd=str(tmp_path))
         result = await tool.execute(
             {
-                "operation": {
-                    "type": "update_file",
-                    "path": "code.py",
-                    "diff": "-    return 'hello'\n+    return 'world'",
-                }
+                "type": "update_file",
+                "path": "code.py",
+                "diff": "-    return 'hello'\n+    return 'world'",
             }
         )
 
@@ -341,11 +350,9 @@ class TestApplyPatchTool:
         tool = ApplyPatchTool(cwd=str(tmp_path))
         result = await tool.execute(
             {
-                "operation": {
-                    "type": "create_file",
-                    "path": "notes.txt",
-                    "diff": "+line one\n+line two",
-                }
+                "type": "create_file",
+                "path": "notes.txt",
+                "diff": "+line one\n+line two",
             }
         )
 
@@ -360,7 +367,7 @@ class TestApplyPatchTool:
 
         tool = ApplyPatchTool(cwd=str(tmp_path))
         result = await tool.execute(
-            {"operation": {"type": "delete_file", "path": "obsolete.txt"}}
+            {"type": "delete_file", "path": "obsolete.txt"}
         )
 
         assert "Deleted" in result
@@ -370,11 +377,9 @@ class TestApplyPatchTool:
         tool = ApplyPatchTool(cwd=str(tmp_path))
         result = await tool.execute(
             {
-                "operation": {
-                    "type": "create_file",
-                    "path": "../outside.txt",
-                    "diff": "+leak",
-                }
+                "type": "create_file",
+                "path": "../outside.txt",
+                "diff": "+leak",
             }
         )
 
@@ -383,13 +388,13 @@ class TestApplyPatchTool:
 
     async def test_execute_requires_operation(self, tmp_path: Path) -> None:
         tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute({"operation": ""})
+        result = await tool.execute({})
         assert "Error:" in result
 
     async def test_execute_requires_diff_for_update(self, tmp_path: Path) -> None:
         tool = ApplyPatchTool(cwd=str(tmp_path))
         result = await tool.execute(
-            {"operation": {"type": "update_file", "path": "a.txt"}}
+            {"type": "update_file", "path": "a.txt"}
         )
         assert "Error:" in result
 

@@ -1,15 +1,12 @@
 """Tests for extension tool dispatch in AgentRunner."""
 
-import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from skillkit.agent import AgentConfig, AgentRunner
 from skillkit.engine import SkillsEngine
 from skillkit.extensions.manager import ExtensionManager
-from skillkit.extensions.models import ToolInfo
 
 
 @pytest.fixture
@@ -170,11 +167,9 @@ class TestExecuteToolDispatchesExtensionTools:
             "name": "apply_patch",
             "arguments": json.dumps(
                 {
-                    "operation": {
-                        "type": "update_file",
-                        "path": str(target),
-                        "diff": "-hello world\n+hello skillkit",
-                    }
+                    "type": "update_file",
+                    "path": str(target),
+                    "diff": "-hello world\n+hello skillkit",
                 }
             ),
             "id": "call_6",

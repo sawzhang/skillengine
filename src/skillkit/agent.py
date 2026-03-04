@@ -525,6 +525,8 @@ class AgentRunner:
         if not self.config.enable_tools:
             return []
 
+        apply_patch_definition = ApplyPatchTool().definition()
+
         tools = [
             {
                 "type": "function",
@@ -621,39 +623,9 @@ class AgentRunner:
             {
                 "type": "function",
                 "function": {
-                    "name": "apply_patch",
-                    "description": (
-                        "Apply one file mutation using an operation payload. "
-                        "Supports create_file, update_file, and delete_file."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "operation": {
-                                "type": "object",
-                                "description": "Apply patch operation object.",
-                                "properties": {
-                                    "type": {
-                                        "type": "string",
-                                        "enum": ["create_file", "update_file", "delete_file"],
-                                    },
-                                    "path": {
-                                        "type": "string",
-                                        "description": "Target file path.",
-                                    },
-                                    "diff": {
-                                        "type": "string",
-                                        "description": (
-                                            "Diff body for create/update, "
-                                            "for example '-old\\n+new'."
-                                        ),
-                                    },
-                                },
-                                "required": ["type", "path"],
-                            },
-                        },
-                        "required": ["operation"],
-                    },
+                    "name": apply_patch_definition.name,
+                    "description": apply_patch_definition.description,
+                    "parameters": apply_patch_definition.parameters,
                 },
             },
         ]
@@ -1050,7 +1022,6 @@ class AgentRunner:
                 return f"Error reading file: {e}"
 
         if name == "apply_patch":
-            operation = args.get("operation")
             workspace_root = getattr(self, "default_cwd", None)
             enforce_workspace_boundary = bool(workspace_root)
             tool_cwd = str(workspace_root) if workspace_root else os.getcwd()
@@ -1058,7 +1029,7 @@ class AgentRunner:
                 cwd=tool_cwd,
                 enforce_workspace_boundary=enforce_workspace_boundary,
             )
-            return await tool.execute({"operation": operation})
+            return await tool.execute(args)
 
         # Dispatch skill tool (on-demand loading)
         if name == "skill":
