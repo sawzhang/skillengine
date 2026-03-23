@@ -158,6 +158,11 @@ class MarkdownSkillLoader(SkillLoader):
             hooks={str(k): str(v) for k, v in hooks.items()},
         )
 
+        # Attach A2A config if present (used by AgentCard.from_skill)
+        a2a_config = frontmatter.get("a2a", {})
+        if isinstance(a2a_config, dict) and a2a_config:
+            skill._a2a_config = a2a_config  # type: ignore[attr-defined]
+
         return SkillEntry(
             skill=skill,
             frontmatter=frontmatter,
@@ -209,6 +214,7 @@ class MarkdownSkillLoader(SkillLoader):
             always=raw_metadata.get("always", False),
             skill_key=raw_metadata.get("skillKey", raw_metadata.get("skill_key")),
             primary_env=raw_metadata.get("primaryEnv", raw_metadata.get("primary_env")),
+            memory_scope=raw_metadata.get("memoryScope", raw_metadata.get("memory_scope")),
             emoji=raw_metadata.get("emoji"),
             homepage=raw_metadata.get("homepage"),
             author=raw_metadata.get("author"),

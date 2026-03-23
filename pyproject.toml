@@ -41,6 +41,8 @@ websockets = ["websockets>=12.0"]
 memory = ["httpx>=0.24"]
 web = ["starlette>=0.27", "uvicorn>=0.23"]
 sandbox = ["boxlite>=0.1"]
+a2a-server = ["fastapi>=0.100", "uvicorn>=0.23"]
+claude-sdk = ["claude-agent-sdk>=0.1"]
 
 [dependency-groups]
 dev = [

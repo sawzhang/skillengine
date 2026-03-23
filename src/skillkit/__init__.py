@@ -50,7 +50,12 @@ from skillkit.context import (
     estimate_messages_tokens,
     estimate_tokens,
 )
-from skillkit.context_files import ContextFile, load_context_files
+from skillkit.context_files import (
+    ContextFile,
+    load_context_files,
+    load_soul_file,
+    parse_soul_file,
+)
 from skillkit.engine import SkillsEngine
 from skillkit.events import (
     AFTER_TOOL_RESULT,
@@ -109,6 +114,7 @@ from skillkit.model_registry import (
     map_thinking_level_to_openai_effort,
 )
 from skillkit.models import (
+    AgentPersona,
     ImageContent,
     MessageContent,
     Skill,
@@ -142,6 +148,35 @@ try:
     from skillkit.memory import MemoryConfig, OpenVikingClient, setup_memory
 except ImportError:
     pass
+
+# Scheduler
+from skillkit.scheduler import ScheduledTask, SchedulerConfig, TaskScheduler, TaskTrigger
+
+# A2A (Agent-to-Agent)
+from skillkit.a2a import (
+    AGENT_DISCOVERED,
+    AGENT_HEALTH_CHANGED,
+    AGENT_REMOVED,
+    DISCOVERY_CYCLE_COMPLETE,
+    A2AClient,
+    A2ATaskRequest,
+    A2ATaskResponse,
+    AgentCapabilities,
+    AgentCard,
+    AgentCardSkill,
+    AgentDiscovery,
+    AgentHealthStatus,
+    AgentRegistry,
+    AgentSource,
+    AgentStats,
+    DiscoveryConfig,
+    PerformanceRouter,
+    RegisteredAgent,
+    RouteResult,
+    RoutingConfig,
+    TaskStatus,
+    create_remote_agent_tool,
+)
 
 __version__ = "0.1.0"
 
@@ -264,4 +299,29 @@ __all__ = [
     "MemoryConfig",
     "OpenVikingClient",
     "setup_memory",
+    # A2A (Agent-to-Agent)
+    "AgentCard",
+    "AgentCardSkill",
+    "AgentCapabilities",
+    "AgentRegistry",
+    "RegisteredAgent",
+    "AgentSource",
+    "AgentStats",
+    "A2ATaskRequest",
+    "A2ATaskResponse",
+    "TaskStatus",
+    "A2AClient",
+    "create_remote_agent_tool",
+    # Discovery
+    "AgentDiscovery",
+    "DiscoveryConfig",
+    "AgentHealthStatus",
+    "AGENT_DISCOVERED",
+    "AGENT_REMOVED",
+    "AGENT_HEALTH_CHANGED",
+    "DISCOVERY_CYCLE_COMPLETE",
+    # Router
+    "PerformanceRouter",
+    "RoutingConfig",
+    "RouteResult",
 ]
