@@ -99,7 +99,7 @@ class TestGetToolsGeneratesActionTools:
         tools = runner.get_tools()
         names = [t["function"]["name"] for t in tools]
         # 4 builtin (execute, execute_script, write, read) + skill tool (on-demand loading)
-        assert names == ["execute", "execute_script", "write", "read", "skill"]
+        assert names == ["execute", "execute_script", "write", "read", "edit", "apply_patch", "skill"]
 
     def test_skill_actions_generate_tools(self):
         skill = _make_skill_with_actions()
@@ -108,7 +108,7 @@ class TestGetToolsGeneratesActionTools:
         names = [t["function"]["name"] for t in tools]
         assert "pdf:extract-fields" in names
         assert "pdf:fill-form" in names
-        assert len(tools) == 7  # 4 builtin + skill tool + 2 actions
+        assert len(tools) == 9  # 6 builtin + skill tool + 2 actions
 
     def test_action_tool_schema_correct(self):
         skill = _make_skill_with_actions()
@@ -216,7 +216,7 @@ class TestGetToolsGeneratesActionTools:
         assert "pdf:extract-fields" in names
         assert "pdf:fill-form" in names
         assert "pptx:inventory" in names
-        assert len(tools) == 8  # 4 builtin + skill tool + 2 pdf + 1 pptx
+        assert len(tools) == 10  # 6 builtin + skill tool + 2 pdf + 1 pptx
 
 
 class TestBuildActionArgs:

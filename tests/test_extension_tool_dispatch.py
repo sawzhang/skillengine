@@ -29,7 +29,7 @@ class TestGetToolsIncludesExtensionTools:
         names = [t["function"]["name"] for t in tools]
         assert "execute" in names
         assert "execute_script" in names
-        assert len(tools) == 4  # execute, execute_script, write, read
+        assert len(tools) == 6  # execute, execute_script, write, read, apply_diff, apply_patch
 
     def test_with_extension_tools(self, runner):
         runner.engine.extensions = ExtensionManager(runner.engine)
@@ -46,7 +46,7 @@ class TestGetToolsIncludesExtensionTools:
         assert "execute" in names
         assert "execute_script" in names
         assert "my_custom_tool" in names
-        assert len(tools) == 5  # 4 builtin + 1 extension
+        assert len(tools) == 7  # 6 builtin + 1 extension
 
     def test_extension_tool_schema(self, runner):
         runner.engine.extensions = ExtensionManager(runner.engine)

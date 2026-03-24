@@ -134,6 +134,7 @@ class SkillMetadata:
     homepage: str | None = None  # Project homepage URL
     author: str | None = None  # Skill author
     version: str | None = None  # Skill version
+    memory_scope: str | None = None  # Isolated memory namespace for this skill
     tags: list[str] = field(default_factory=list)  # Categorization tags
     requires: SkillRequirements = field(default_factory=SkillRequirements)
     install: list[SkillInstallSpec] = field(default_factory=list)
