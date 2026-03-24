@@ -1,4 +1,4 @@
-# SkillKit
+# SkillEngine
 
 **The open-source skills engine that gives any LLM agent a Claude Code-like experience.**
 
@@ -8,18 +8,18 @@ Define skills as Markdown. Load them into any model. Ship agent capabilities wit
 [![Python](https://img.shields.io/badge/python-3.10+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
-## Why SkillKit?
+## Why SkillEngine?
 
 Every AI agent platform is building its own skills/plugins system — Claude Code has skills, Cursor has rules, ChatGPT has GPTs, Codex has tasks. They're all incompatible, proprietary, and locked to one provider.
 
-SkillKit extracts the **best patterns from Claude Code's skill system** into a standalone, framework-agnostic engine that works with any LLM. Write once, run on OpenAI, Anthropic, MiniMax, or your local model.
+SkillEngine extracts the **best patterns from Claude Code's skill system** into a standalone, framework-agnostic engine that works with any LLM. Write once, run on OpenAI, Anthropic, MiniMax, or your local model.
 
 ```
 Your Skills (Markdown + YAML)
         │
         ▼
    ┌──────────┐
-   │ SkillKit │ ← Framework-agnostic engine
+   │ SkillEngine │ ← Framework-agnostic engine
    └────┬─────┘
         │
    ┌────┴────────────────────────┐
@@ -200,7 +200,7 @@ metadata:
      OpenAI       Anthropic       MiniMax / Local
 ```
 
-## Extending SkillKit
+## Extending SkillEngine
 
 ### Custom Loader
 
