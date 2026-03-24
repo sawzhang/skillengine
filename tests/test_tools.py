@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
-from skillkit.tools import (
-    ApplyPatchTool,
-    ReadTool,
-    ToolDefinition,
+import pytest
+
+from skillengine.tools import (
     ToolRegistry,
+    ToolDefinition,
+    ReadTool,
     WriteTool,
-    create_all_tools,
+    EditTool,
     create_coding_tools,
     create_read_only_tools,
+    create_all_tools,
 )
 
 
@@ -146,12 +149,12 @@ class TestCreateTools:
     """Tests for tool factory functions."""
 
     def test_create_coding_tools_returns_four(self) -> None:
-        """Should return 4 coding tools: read, write, apply_patch, bash."""
+        """Should return 4 coding tools: read, write, edit, bash."""
         tools = create_coding_tools()
 
         assert len(tools) == 4
         names = {t.name for t in tools}
-        assert names == {"read", "write", "apply_patch", "bash"}
+        assert names == {"read", "write", "edit", "bash"}
 
     def test_create_coding_tools_are_tool_definitions(self) -> None:
         """Should return ToolDefinition instances."""
@@ -174,15 +177,7 @@ class TestCreateTools:
         tools = create_all_tools()
 
         assert len(tools) == 7
-        assert set(tools.keys()) == {
-            "read",
-            "write",
-            "apply_patch",
-            "bash",
-            "grep",
-            "find",
-            "ls",
-        }
+        assert set(tools.keys()) == {"read", "write", "edit", "bash", "grep", "find", "ls"}
 
     def test_create_all_tools_returns_dict(self) -> None:
         """Should return a dict mapping name to ToolDefinition."""
@@ -308,106 +303,106 @@ class TestReadTool:
         assert "Error" in result
 
 
-class TestApplyPatchTool:
-    """Tests for ApplyPatchTool."""
+class TestEditTool:
+    """Tests for EditTool."""
 
     def test_name_and_description(self) -> None:
-        tool = ApplyPatchTool()
-        assert tool.name == "apply_patch"
-        assert "top-level fields" in tool.description.lower()
-        assert "diff is required" in tool.description.lower()
-        assert "[+-<space>]line format" in tool.description
-        assert "contain one complete line" in tool.description.lower()
-        assert "separated by '\\n'" in tool.description
-        assert "inserts content at the top of the file" in tool.description.lower()
-        assert "include context using ' ' or '-'" in tool.description.lower()
-        assert "original='b\\nc\\n'" in tool.description
-        assert "result='a\\nb\\nc\\n'" in tool.description
-        assert "original='line1\\nline2\\n'" in tool.description
-        assert "result='line1\\nline two\\n'" in tool.description
-        assert "\"type\":\"update_file\"" in tool.description
+        """Should have correct name and description."""
+        tool = EditTool()
 
-    def test_parameters_schema_is_strict_and_conditional(self) -> None:
-        tool = ApplyPatchTool()
-        params = tool.parameters
+        assert tool.name == "edit"
+        assert "replace" in tool.description.lower() or "replacement" in tool.description.lower()
 
-        assert params["type"] == "object"
-        assert params["required"] == ["type", "path"]
-        assert params["additionalProperties"] is False
-
-        op_props = params["properties"]
-        assert op_props["type"]["enum"] == ["create_file", "update_file", "delete_file"]
-        assert op_props["path"]["minLength"] == 1
-        assert op_props["diff"]["minLength"] == 1
-        assert "allOf" not in params
-
-    async def test_execute_update_file(self, tmp_path: Path) -> None:
+    async def test_execute_replacement(self, tmp_path: Path) -> None:
+        """Should replace a unique string in a file."""
         test_file = tmp_path / "code.py"
-        test_file.write_text("def hello():\n    return 'hello'\n", encoding="utf-8")
+        test_file.write_text("def hello():\n    return 'hello'\n")
 
-        tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute(
-            {
-                "type": "update_file",
-                "path": "code.py",
-                "diff": "-    return 'hello'\n+    return 'world'",
-            }
-        )
+        tool = EditTool(cwd=str(tmp_path))
+        result = await tool.execute({
+            "file_path": str(test_file),
+            "old_string": "return 'hello'",
+            "new_string": "return 'world'",
+        })
 
-        assert "Updated" in result
-        assert "return 'world'" in test_file.read_text(encoding="utf-8")
+        assert "Edited" in result
+        assert "1 replacement" in result
+        updated = test_file.read_text()
+        assert "return 'world'" in updated
+        assert "return 'hello'" not in updated
 
-    async def test_execute_add_file(self, tmp_path: Path) -> None:
-        tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute(
-            {
-                "type": "create_file",
-                "path": "notes.txt",
-                "diff": "+line one\n+line two",
-            }
-        )
+    async def test_execute_not_found_error(self, tmp_path: Path) -> None:
+        """Should return error when old_string not found in file."""
+        test_file = tmp_path / "code.py"
+        test_file.write_text("def hello():\n    pass\n")
 
-        created = tmp_path / "notes.txt"
-        assert "Created" in result
-        assert created.exists()
-        assert created.read_text(encoding="utf-8") == "line one\nline two"
+        tool = EditTool(cwd=str(tmp_path))
+        result = await tool.execute({
+            "file_path": str(test_file),
+            "old_string": "nonexistent string",
+            "new_string": "replacement",
+        })
 
-    async def test_execute_delete_file(self, tmp_path: Path) -> None:
-        target = tmp_path / "obsolete.txt"
-        target.write_text("remove", encoding="utf-8")
+        assert "Error" in result
+        assert "not found" in result
 
-        tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute(
-            {"type": "delete_file", "path": "obsolete.txt"}
-        )
+    async def test_execute_non_unique_error(self, tmp_path: Path) -> None:
+        """Should return error when old_string appears multiple times."""
+        test_file = tmp_path / "code.py"
+        test_file.write_text("x = 1\nx = 1\n")
 
-        assert "Deleted" in result
-        assert not target.exists()
+        tool = EditTool(cwd=str(tmp_path))
+        result = await tool.execute({
+            "file_path": str(test_file),
+            "old_string": "x = 1",
+            "new_string": "x = 2",
+        })
 
-    async def test_execute_rejects_workspace_escape(self, tmp_path: Path) -> None:
-        tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute(
-            {
-                "type": "create_file",
-                "path": "../outside.txt",
-                "diff": "+leak",
-            }
-        )
+        assert "Error" in result
+        assert "2 times" in result
+        # File should be unchanged
+        assert test_file.read_text() == "x = 1\nx = 1\n"
 
-        assert "Error:" in result
-        assert "escapes workspace" in result
+    async def test_execute_replace_all(self, tmp_path: Path) -> None:
+        """Should replace all occurrences when replace_all is True."""
+        test_file = tmp_path / "code.py"
+        test_file.write_text("x = 1\nx = 1\n")
 
-    async def test_execute_requires_operation(self, tmp_path: Path) -> None:
-        tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute({})
-        assert "Error:" in result
+        tool = EditTool(cwd=str(tmp_path))
+        result = await tool.execute({
+            "file_path": str(test_file),
+            "old_string": "x = 1",
+            "new_string": "x = 2",
+            "replace_all": True,
+        })
 
-    async def test_execute_requires_diff_for_update(self, tmp_path: Path) -> None:
-        tool = ApplyPatchTool(cwd=str(tmp_path))
-        result = await tool.execute(
-            {"type": "update_file", "path": "a.txt"}
-        )
-        assert "Error:" in result
+        assert "Edited" in result
+        assert "2 replacements" in result
+        assert test_file.read_text() == "x = 2\nx = 2\n"
+
+    async def test_execute_file_not_found(self, tmp_path: Path) -> None:
+        """Should return error when the target file does not exist."""
+        tool = EditTool(cwd=str(tmp_path))
+        result = await tool.execute({
+            "file_path": str(tmp_path / "missing.py"),
+            "old_string": "a",
+            "new_string": "b",
+        })
+
+        assert "Error" in result
+        assert "not found" in result
+
+    async def test_execute_same_string_error(self) -> None:
+        """Should return error when old_string equals new_string."""
+        tool = EditTool()
+        result = await tool.execute({
+            "file_path": "/tmp/any.py",
+            "old_string": "same",
+            "new_string": "same",
+        })
+
+        assert "Error" in result
+        assert "different" in result
 
 
 class TestWriteTool:

@@ -4,8 +4,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from skillkit.a2a.agent_card import AgentCard, AgentCardSkill
-from skillkit.a2a.discovery import (
+from skillengine.a2a.agent_card import AgentCard, AgentCardSkill
+from skillengine.a2a.discovery import (
     AGENT_DISCOVERED,
     AGENT_HEALTH_CHANGED,
     AGENT_REMOVED,
@@ -13,8 +13,8 @@ from skillkit.a2a.discovery import (
     AgentHealthStatus,
     DiscoveryConfig,
 )
-from skillkit.a2a.registry import AgentRegistry
-from skillkit.models import Skill, SkillMetadata
+from skillengine.a2a.registry import AgentRegistry
+from skillengine.models import Skill, SkillMetadata
 
 
 def _make_card(name: str, description: str = "Test agent") -> AgentCard:

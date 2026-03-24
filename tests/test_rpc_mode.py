@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from skillkit.modes.rpc_mode import RpcMode, RpcResponse
+from skillengine.modes.rpc_mode import RpcMode, RpcResponse
 
 
 class TestRpcResponse:

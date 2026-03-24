@@ -5,8 +5,8 @@ from textwrap import dedent
 
 import pytest
 
-from skillkit.loaders import MarkdownSkillLoader
-from skillkit.models import SkillSource
+from skillengine.loaders import MarkdownSkillLoader
+from skillengine.models import SkillSource
 
 
 class TestMarkdownSkillLoader:

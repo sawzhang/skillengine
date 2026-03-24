@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.agent import AgentConfig, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.events import AGENT_END, AGENT_START, CONTEXT_TRANSFORM, EventBus
-from skillkit.memory.config import MemoryConfig
-from skillkit.memory.extension import setup_memory
+from skillengine.agent import AgentConfig, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.events import AGENT_END, AGENT_START, CONTEXT_TRANSFORM, EventBus
+from skillengine.memory.config import MemoryConfig
+from skillengine.memory.extension import setup_memory
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ class TestSetupMemory:
     async def test_returns_none_when_unavailable(self, runner):
         """setup_memory returns None when OV is not reachable."""
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=False)
@@ -40,7 +40,7 @@ class TestSetupMemory:
     async def test_returns_client_when_available(self, runner):
         """setup_memory returns the client when OV is reachable."""
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)
@@ -54,7 +54,7 @@ class TestSetupMemory:
     async def test_registers_four_tools(self, runner):
         """setup_memory registers 4 memory tools."""
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)
@@ -75,7 +75,7 @@ class TestSetupMemory:
     async def test_tools_appear_in_get_tools(self, runner):
         """Extension tools should appear in AgentRunner.get_tools()."""
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)
@@ -101,7 +101,7 @@ class TestSetupMemory:
     async def test_registers_event_hooks(self, runner):
         """setup_memory registers 3 event hooks on the EventBus."""
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)
@@ -120,7 +120,7 @@ class TestSetupMemory:
         assert runner.engine.extensions is None
 
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)
@@ -138,7 +138,7 @@ class TestSetupMemory:
         original_manager = runner.engine.extensions
 
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)
@@ -153,7 +153,7 @@ class TestSetupMemory:
     async def test_default_config(self, runner):
         """setup_memory uses default config when None is passed."""
         with patch(
-            "skillkit.memory.extension.OpenVikingClient"
+            "skillengine.memory.extension.OpenVikingClient"
         ) as MockClient:
             mock_instance = AsyncMock()
             mock_instance.initialize = AsyncMock(return_value=True)

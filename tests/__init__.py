@@ -1,1 +1,1 @@
-"""Tests for skillkit."""
+"""Tests for skillengine."""

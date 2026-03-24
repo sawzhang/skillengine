@@ -1,6 +1,6 @@
 # Roadmap
 
-SkillKit improvement roadmap, based on architectural comparison with [pi-mono](https://github.com/badlogic/pi-mono) (a production-grade multi-provider agent SDK in TypeScript).
+SkillEngine improvement roadmap, based on architectural comparison with [pi-mono](https://github.com/badlogic/pi-mono) (a production-grade multi-provider agent SDK in TypeScript).
 
 Our core advantage — Markdown+YAML skill definition, eligibility filtering, deterministic actions, hot-reload — remains the differentiator. The improvements below focus on **agent runtime capabilities** to reach production-grade extensibility.
 
@@ -44,8 +44,8 @@ async def guard(event: ToolCallEvent) -> ToolCallEventResult:
 | `input` | User message received | Transform or intercept |
 
 **Files to create/modify**:
-- `src/skillkit/events.py` — `EventBus`, event types, result types
-- `src/skillkit/agent.py` — Integrate events into `AgentRunner` loop
+- `src/skillengine/events.py` — `EventBus`, event types, result types
+- `src/skillengine/agent.py` — Integrate events into `AgentRunner` loop
 - `tests/test_events.py` — Event emission order, handler return values
 
 ---
@@ -100,10 +100,10 @@ async for event in agent.chat_stream_events("hello"):
 - Each `LLMAdapter` must map provider-specific events to `StreamEvent`
 
 **Files to create/modify**:
-- `src/skillkit/models.py` — Add `StreamEvent` dataclass
-- `src/skillkit/adapters/base.py` — Add `chat_stream_events()` to interface
-- `src/skillkit/adapters/openai.py` — Map OpenAI stream chunks
-- `src/skillkit/adapters/anthropic.py` — Map Anthropic stream events
+- `src/skillengine/models.py` — Add `StreamEvent` dataclass
+- `src/skillengine/adapters/base.py` — Add `chat_stream_events()` to interface
+- `src/skillengine/adapters/openai.py` — Map OpenAI stream chunks
+- `src/skillengine/adapters/anthropic.py` — Map Anthropic stream events
 
 ---
 
@@ -153,10 +153,10 @@ class ModelRegistry:
 - `ModelRegistry` injectable via config, extensible at runtime
 
 **Files to create/modify**:
-- `src/skillkit/model_registry.py` — `ModelDefinition`, `ModelRegistry`, `ModelCost`
-- `src/skillkit/models_catalog.py` — Built-in model definitions (or `models_catalog.yaml`)
-- `src/skillkit/adapters/base.py` — Add `TokenUsage` to `AgentResponse`
-- `src/skillkit/config.py` — Accept `ModelDefinition` in `AgentConfig`
+- `src/skillengine/model_registry.py` — `ModelDefinition`, `ModelRegistry`, `ModelCost`
+- `src/skillengine/models_catalog.py` — Built-in model definitions (or `models_catalog.yaml`)
+- `src/skillengine/adapters/base.py` — Add `TokenUsage` to `AgentResponse`
+- `src/skillengine/config.py` — Accept `ModelDefinition` in `AgentConfig`
 
 ---
 
@@ -210,9 +210,9 @@ class TokenBudgetCompactor:
 ```
 
 **Files to create/modify**:
-- `src/skillkit/context.py` — `ContextTransformer`, compaction strategies, token estimation
-- `src/skillkit/agent.py` — Integrate context pipeline into agent loop
-- `src/skillkit/models.py` — Distinguish `AgentMessage` vs `LLMMessage`
+- `src/skillengine/context.py` — `ContextTransformer`, compaction strategies, token estimation
+- `src/skillengine/agent.py` — Integrate context pipeline into agent loop
+- `src/skillengine/models.py` — Distinguish `AgentMessage` vs `LLMMessage`
 
 ---
 
@@ -262,9 +262,9 @@ def on_tool_output(event):
 ```
 
 **Files to modify**:
-- `src/skillkit/runtime/base.py` — Add `on_output` parameter
-- `src/skillkit/runtime/bash.py` — Stream subprocess output
-- `src/skillkit/agent.py` — Emit `tool_execution_update` events
+- `src/skillengine/runtime/base.py` — Add `on_output` parameter
+- `src/skillengine/runtime/bash.py` — Stream subprocess output
+- `src/skillengine/agent.py` — Emit `tool_execution_update` events
 
 ---
 
@@ -303,9 +303,9 @@ class AgentRunner:
 - Follow-up queue checked after agent loop completes, triggering re-entry
 
 **Files to modify**:
-- `src/skillkit/agent.py` — Add `abort()`, `steer()`, `follow_up()`, internal queues
-- `src/skillkit/runtime/bash.py` — Respect abort signal in subprocess execution
-- `src/skillkit/adapters/base.py` — Respect abort signal in LLM streaming
+- `src/skillengine/agent.py` — Add `abort()`, `steer()`, `follow_up()`, internal queues
+- `src/skillengine/runtime/bash.py` — Respect abort signal in subprocess execution
+- `src/skillengine/adapters/base.py` — Respect abort signal in LLM streaming
 
 ---
 
@@ -339,9 +339,9 @@ agent.set_adapter("my-local-llm")
 ```
 
 **Files to create/modify**:
-- `src/skillkit/adapters/registry.py` — `AdapterRegistry`
-- `src/skillkit/agent.py` — Use registry instead of single adapter
-- `src/skillkit/extensions/api.py` — Expose `register_adapter()` to extensions
+- `src/skillengine/adapters/registry.py` — `AdapterRegistry`
+- `src/skillengine/agent.py` — Use registry instead of single adapter
+- `src/skillengine/extensions/api.py` — Expose `register_adapter()` to extensions
 
 ---
 

@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from skillkit.tui.keybindings import DEFAULT_KEYBINDINGS, KeybindingsManager
-from skillkit.tui.keys import Key
+from skillengine.tui.keybindings import DEFAULT_KEYBINDINGS, KeybindingsManager
+from skillengine.tui.keys import Key
 
 
 class TestKeybindingsManager:

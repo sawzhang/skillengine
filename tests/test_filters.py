@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from skillkit import SkillsConfig
-from skillkit.config import SkillEntryConfig
-from skillkit.filters import DefaultSkillFilter
-from skillkit.filters.base import FilterContext
-from skillkit.models import (
+from skillengine import SkillsConfig
+from skillengine.config import SkillEntryConfig
+from skillengine.filters import DefaultSkillFilter
+from skillengine.filters.base import FilterContext
+from skillengine.models import (
     Skill,
     SkillMetadata,
     SkillRequirements,

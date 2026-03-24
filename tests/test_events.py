@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.events import (
+from skillengine.events import (
     AGENT_END,
     AGENT_START,
     AFTER_TOOL_RESULT,
@@ -263,9 +263,9 @@ class TestAgentRunnerEvents:
 
     def _make_runner(self, events: EventBus | None = None) -> MagicMock:
         """Create a minimal AgentRunner with mocked LLM."""
-        from skillkit.agent import AgentConfig, AgentMessage, AgentRunner
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.agent import AgentConfig, AgentMessage, AgentRunner
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         config = SkillsConfig(skill_dirs=[])
         engine = SkillsEngine(config=config)
@@ -289,7 +289,7 @@ class TestAgentRunnerEvents:
 
     def test_agent_start_end_events(self) -> None:
         """agent_start and agent_end should fire on a simple chat call."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
         events_received: list[str] = []
@@ -312,7 +312,7 @@ class TestAgentRunnerEvents:
 
     def test_turn_events(self) -> None:
         """turn_start and turn_end should fire for each LLM round-trip."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
         turns: list[tuple[str, int]] = []
@@ -331,7 +331,7 @@ class TestAgentRunnerEvents:
 
     def test_before_tool_call_block(self) -> None:
         """before_tool_call handler can block a tool execution."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
 
@@ -374,7 +374,7 @@ class TestAgentRunnerEvents:
 
     def test_before_tool_call_modify_args(self) -> None:
         """before_tool_call handler can modify tool arguments."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
 
@@ -420,7 +420,7 @@ class TestAgentRunnerEvents:
 
     def test_after_tool_result_modify(self) -> None:
         """after_tool_result handler can modify the tool output."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
 
@@ -462,7 +462,7 @@ class TestAgentRunnerEvents:
 
     def test_input_event_transform(self) -> None:
         """input handler can transform user input."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
 
@@ -486,7 +486,7 @@ class TestAgentRunnerEvents:
 
     def test_input_event_handled(self) -> None:
         """input handler can short-circuit and return a response directly."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
 
@@ -506,7 +506,7 @@ class TestAgentRunnerEvents:
 
     def test_context_transform(self) -> None:
         """context_transform handler can modify messages before LLM call."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
 
@@ -530,7 +530,7 @@ class TestAgentRunnerEvents:
 
     def test_full_lifecycle_event_order(self) -> None:
         """Verify the full order of events in a simple chat with one tool call."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
         event_log: list[str] = []
@@ -582,7 +582,7 @@ class TestAgentRunnerEvents:
 
     def test_agent_end_on_error(self) -> None:
         """agent_end should fire even if an error occurs, with error info."""
-        from skillkit.agent import AgentMessage
+        from skillengine.agent import AgentMessage
 
         bus = EventBus()
         end_events: list[AgentEndEvent] = []
@@ -608,9 +608,9 @@ class TestAgentRunnerEvents:
 class TestExtensionManagerEventBridge:
     def test_extension_hook_registered_on_event_bus(self) -> None:
         """When ExtensionManager has an event_bus, hooks should register on both."""
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
-        from skillkit.extensions.manager import ExtensionManager
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
+        from skillengine.extensions.manager import ExtensionManager
 
         bus = EventBus()
         config = SkillsConfig(skill_dirs=[])
@@ -627,9 +627,9 @@ class TestExtensionManagerEventBridge:
 
     def test_extension_hook_without_event_bus(self) -> None:
         """Without event_bus, hooks only register on the manager."""
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
-        from skillkit.extensions.manager import ExtensionManager
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
+        from skillengine.extensions.manager import ExtensionManager
 
         config = SkillsConfig(skill_dirs=[])
         engine = SkillsEngine(config=config)

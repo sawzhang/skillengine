@@ -46,10 +46,10 @@ Your Skills (Markdown + YAML)
 
 ```bash
 # With uv (recommended)
-uv add skillkit
+uv add skillengine
 
 # Or pip
-pip install skillkit[openai]
+pip install skillengine[openai]
 ```
 
 ### Create a Skill
@@ -77,7 +77,7 @@ Focus on key decisions, action items, and open questions.
 ```python
 import asyncio
 from pathlib import Path
-from skillkit import create_agent
+from skillengine import create_agent
 
 async def main():
     agent = await create_agent(
@@ -205,7 +205,7 @@ metadata:
 ### Custom Loader
 
 ```python
-from skillkit.loaders import SkillLoader
+from skillengine.loaders import SkillLoader
 
 class YAMLSkillLoader(SkillLoader):
     def can_load(self, path: Path) -> bool:
@@ -218,7 +218,7 @@ class YAMLSkillLoader(SkillLoader):
 ### Custom Filter
 
 ```python
-from skillkit.filters import SkillFilter
+from skillengine.filters import SkillFilter
 
 class TeamSkillFilter(SkillFilter):
     def filter(self, skill, config, context) -> FilterResult:
@@ -231,7 +231,7 @@ class TeamSkillFilter(SkillFilter):
 ### Custom Runtime
 
 ```python
-from skillkit.runtime import SkillRuntime
+from skillengine.runtime import SkillRuntime
 
 class DockerRuntime(SkillRuntime):
     async def execute(self, command, cwd, env, timeout):

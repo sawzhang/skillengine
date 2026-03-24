@@ -7,8 +7,8 @@ import time
 
 import pytest
 
-from skillkit.runtime.base import ExecutionResult
-from skillkit.runtime.bash import BashRuntime
+from skillengine.runtime.base import ExecutionResult
+from skillengine.runtime.bash import BashRuntime
 
 # ---------------------------------------------------------------------------
 # BashRuntime basic execution

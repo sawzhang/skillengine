@@ -5,10 +5,10 @@ import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from skillkit.a2a.agent_card import AgentCard, AgentCardSkill
-from skillkit.a2a.client import A2AClient, create_remote_agent_tool
-from skillkit.a2a.models import A2ATaskResponse, TaskStatus
-from skillkit.a2a.registry import AgentRegistry
+from skillengine.a2a.agent_card import AgentCard, AgentCardSkill
+from skillengine.a2a.client import A2AClient, create_remote_agent_tool
+from skillengine.a2a.models import A2ATaskResponse, TaskStatus
+from skillengine.a2a.registry import AgentRegistry
 
 
 class TestA2AClient:

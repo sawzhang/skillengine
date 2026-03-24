@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from skillkit.a2a.agent_card import AgentCard, AgentCapabilities, AgentCardSkill
-from skillkit.models import Skill, SkillMetadata
+from skillengine.a2a.agent_card import AgentCard, AgentCapabilities, AgentCardSkill
+from skillengine.models import Skill, SkillMetadata
 
 
 def _make_skill(

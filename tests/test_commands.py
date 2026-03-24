@@ -7,17 +7,17 @@ from pathlib import Path
 
 import pytest
 
-from skillkit import SkillsConfig, SkillsEngine
-from skillkit.commands import CommandRegistry, CommandResult
-from skillkit.extensions.manager import ExtensionManager
-from skillkit.extensions.models import CommandInfo
-from skillkit.models import (
+from skillengine import SkillsConfig, SkillsEngine
+from skillengine.commands import CommandRegistry, CommandResult
+from skillengine.extensions.manager import ExtensionManager
+from skillengine.extensions.models import CommandInfo
+from skillengine.models import (
     Skill,
     SkillInvocationPolicy,
     SkillMetadata,
     SkillSource,
 )
-from skillkit.prompts import PromptTemplate, PromptTemplateLoader
+from skillengine.prompts import PromptTemplate, PromptTemplateLoader
 
 
 @pytest.fixture

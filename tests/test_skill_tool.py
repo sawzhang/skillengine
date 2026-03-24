@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.agent import AgentConfig, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.models import (
+from skillengine.agent import AgentConfig, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.models import (
     Skill,
     SkillInvocationPolicy,
     SkillMetadata,
     SkillSnapshot,
     SkillSource,
 )
-from skillkit.runtime.base import ExecutionResult
+from skillengine.runtime.base import ExecutionResult
 
 
 # ---------------------------------------------------------------------------
@@ -365,7 +365,7 @@ class TestFrontmatterParsing:
     """MarkdownSkillLoader should parse Claude Agent Skills extensions."""
 
     def test_parse_allowed_tools(self, tmp_path: Path):
-        from skillkit.loaders.markdown import MarkdownSkillLoader
+        from skillengine.loaders.markdown import MarkdownSkillLoader
 
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
@@ -387,7 +387,7 @@ class TestFrontmatterParsing:
         assert entry.skill.allowed_tools == ["Read", "Grep", "Glob"]
 
     def test_parse_model(self, tmp_path: Path):
-        from skillkit.loaders.markdown import MarkdownSkillLoader
+        from skillengine.loaders.markdown import MarkdownSkillLoader
 
         skill_dir = tmp_path / "my-skill"
         skill_dir.mkdir()
@@ -406,7 +406,7 @@ class TestFrontmatterParsing:
         assert entry.skill.model == "claude-sonnet-4-5-20250514"
 
     def test_parse_context_fork(self, tmp_path: Path):
-        from skillkit.loaders.markdown import MarkdownSkillLoader
+        from skillengine.loaders.markdown import MarkdownSkillLoader
 
         skill_dir = tmp_path / "forked"
         skill_dir.mkdir()
@@ -425,7 +425,7 @@ class TestFrontmatterParsing:
         assert entry.skill.context == "fork"
 
     def test_parse_argument_hint(self, tmp_path: Path):
-        from skillkit.loaders.markdown import MarkdownSkillLoader
+        from skillengine.loaders.markdown import MarkdownSkillLoader
 
         skill_dir = tmp_path / "search"
         skill_dir.mkdir()
@@ -444,7 +444,7 @@ class TestFrontmatterParsing:
         assert entry.skill.argument_hint == "<search query>"
 
     def test_parse_hooks(self, tmp_path: Path):
-        from skillkit.loaders.markdown import MarkdownSkillLoader
+        from skillengine.loaders.markdown import MarkdownSkillLoader
 
         skill_dir = tmp_path / "hooked"
         skill_dir.mkdir()
@@ -468,7 +468,7 @@ class TestFrontmatterParsing:
         }
 
     def test_defaults_when_extensions_absent(self, tmp_path: Path):
-        from skillkit.loaders.markdown import MarkdownSkillLoader
+        from skillengine.loaders.markdown import MarkdownSkillLoader
 
         skill_dir = tmp_path / "basic"
         skill_dir.mkdir()
@@ -592,7 +592,7 @@ class TestContextFork:
         # Mock chat on the child to avoid LLM calls
         with patch.object(AgentRunner, "__init__", capture_init):
             with patch.object(AgentRunner, "chat", new_callable=AsyncMock) as mock_chat:
-                from skillkit.agent import AgentMessage
+                from skillengine.agent import AgentMessage
                 mock_chat.return_value = AgentMessage(
                     role="assistant", content="child response"
                 )
@@ -629,7 +629,7 @@ class TestContextFork:
 
         with patch.object(AgentRunner, "__init__", capture_init):
             with patch.object(AgentRunner, "chat", new_callable=AsyncMock) as mock_chat:
-                from skillkit.agent import AgentMessage
+                from skillengine.agent import AgentMessage
                 mock_chat.return_value = AgentMessage(role="assistant", content="ok")
                 await runner._execute_skill_forked(skill, "test")
 
@@ -661,7 +661,7 @@ class TestContextFork:
 
         with patch.object(AgentRunner, "__init__", capture_init):
             with patch.object(AgentRunner, "chat", new_callable=AsyncMock) as mock_chat:
-                from skillkit.agent import AgentMessage
+                from skillengine.agent import AgentMessage
 
                 async def fake_chat(user_input, **kw):
                     return AgentMessage(role="assistant", content="ok")

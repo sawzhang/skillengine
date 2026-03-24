@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from skillkit.events import AgentEndEvent, AgentStartEvent, ContextTransformEvent
-from skillkit.memory.client import OpenVikingClient
-from skillkit.memory.config import MemoryConfig
-from skillkit.memory.hooks import MemoryHooks
-from skillkit.memory.tools import MemoryState
+from skillengine.events import AgentEndEvent, AgentStartEvent, ContextTransformEvent
+from skillengine.memory.client import OpenVikingClient
+from skillengine.memory.config import MemoryConfig
+from skillengine.memory.hooks import MemoryHooks
+from skillengine.memory.tools import MemoryState
 
 
 @pytest.fixture
