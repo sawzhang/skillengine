@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.agent import AgentConfig, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.extensions.manager import ExtensionManager
-from skillkit.extensions.models import ToolInfo
+from skillengine.agent import AgentConfig, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.extensions.manager import ExtensionManager
+from skillengine.extensions.models import ToolInfo
 
 
 @pytest.fixture

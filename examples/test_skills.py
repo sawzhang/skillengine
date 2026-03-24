@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from skillkit import create_agent
+from skillengine import create_agent
 
 
 async def test_skill(agent, skill_name: str, prompt: str, description: str):
@@ -47,7 +47,7 @@ async def test_skill(agent, skill_name: str, prompt: str, description: str):
 
 async def main():
     print("=" * 60)
-    print("SkillKit - Skill Execution Tests")
+    print("SkillEngine - Skill Execution Tests")
     print("=" * 60)
 
     # Create agent

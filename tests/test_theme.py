@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from skillkit.tui.theme import (
+from skillengine.tui.theme import (
     ALL_COLOR_KEYS,
     DEFAULT_DARK_THEME,
     THEME_SCHEMA,

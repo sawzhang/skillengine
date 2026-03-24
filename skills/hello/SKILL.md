@@ -30,7 +30,7 @@ When this skill is invoked:
 
 ### Simple Greeting
 ```
-Hello! 🌟 Welcome to SkillKit!
+Hello! 🌟 Welcome to SkillEngine!
 Today is a great day to build something amazing.
 ```
 

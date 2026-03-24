@@ -39,3 +39,6 @@ htmlcov/
 *.pptx
 *.docx
 demo_*
+
+# Auto-generated version file (hatch-vcs)
+src/skillengine/_version.py

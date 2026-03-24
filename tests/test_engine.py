@@ -5,7 +5,7 @@ from textwrap import dedent
 
 import pytest
 
-from skillkit import SkillsEngine, SkillsConfig
+from skillengine import SkillsEngine, SkillsConfig
 
 
 class TestSkillsEngine:
@@ -125,7 +125,7 @@ class TestSkillsEngine:
             # Content
         """).strip())
 
-        from skillkit.config import SkillEntryConfig
+        from skillengine.config import SkillEntryConfig
 
         engine = SkillsEngine(
             config=SkillsConfig(

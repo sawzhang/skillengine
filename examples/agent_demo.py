@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SkillKit Demo
+SkillEngine Demo
 
 Demonstrates automatic skill loading and agent execution
 similar to Claude Code's experience.
@@ -23,13 +23,13 @@ from pathlib import Path
 # Add src to path for development
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from skillkit import AgentRunner, create_agent
+from skillengine import AgentRunner, create_agent
 
 
 async def demo_basic():
     """Basic usage demo."""
     print("=" * 60)
-    print("SkillKit - Basic Demo")
+    print("SkillEngine - Basic Demo")
     print("=" * 60)
 
     # Create agent with skills
@@ -84,7 +84,7 @@ async def demo_tool_execution(agent: AgentRunner):
 async def run_interactive():
     """Run interactive chat mode."""
     print("=" * 60)
-    print("SkillKit - Interactive Mode")
+    print("SkillEngine - Interactive Mode")
     print("=" * 60)
 
     agent = await create_agent(
@@ -96,7 +96,7 @@ async def run_interactive():
 
     await agent.run_interactive(
         prompt="You: ",
-        greeting="\nWelcome to SkillKit interactive mode!",
+        greeting="\nWelcome to SkillEngine interactive mode!",
     )
 
 

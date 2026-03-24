@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from skillkit.agent import AgentConfig, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.models import (
+from skillengine.agent import AgentConfig, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.models import (
     Skill,
     SkillAction,
     SkillActionParam,
@@ -16,7 +16,7 @@ from skillkit.models import (
     SkillSnapshot,
     SkillSource,
 )
-from skillkit.runtime.base import ExecutionResult
+from skillengine.runtime.base import ExecutionResult
 
 
 def _make_skill_with_actions(name: str = "pdf", actions: dict | None = None) -> Skill:

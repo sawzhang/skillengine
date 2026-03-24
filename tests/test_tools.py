@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from skillkit.tools import (
+from skillengine.tools import (
     ToolRegistry,
     ToolDefinition,
     ReadTool,

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from skillkit.session.models import (
+from skillengine.session.models import (
     BranchSummaryEntry,
     CompactionEntry,
     CustomEntry,
@@ -21,7 +21,7 @@ from skillkit.session.models import (
     SessionMessageEntry,
     ThinkingLevelChangeEntry,
 )
-from skillkit.session.store import (
+from skillengine.session.store import (
     _deserialize_entry,
     _serialize_entry,
     append_entry,
@@ -30,14 +30,14 @@ from skillkit.session.store import (
     load_session,
     save_header,
 )
-from skillkit.session.tree import (
+from skillengine.session.tree import (
     SessionTreeNode,
     build_tree,
     find_entry,
     get_branches,
     walk_to_root,
 )
-from skillkit.session.manager import SessionManager
+from skillengine.session.manager import SessionManager
 
 
 # ---------------------------------------------------------------------------
@@ -398,7 +398,7 @@ class TestSessionStore:
         """get_session_dir should create the directory if it does not exist."""
         # Monkeypatch the base directory so we don't pollute the real home
         monkeypatch.setattr(
-            "skillkit.session.store._SESSIONS_BASE",
+            "skillengine.session.store._SESSIONS_BASE",
             tmp_path / "sessions",
         )
         session_dir = get_session_dir("/some/project")
@@ -408,7 +408,7 @@ class TestSessionStore:
     def test_get_session_dir_deterministic(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """get_session_dir should return the same directory for the same cwd."""
         monkeypatch.setattr(
-            "skillkit.session.store._SESSIONS_BASE",
+            "skillengine.session.store._SESSIONS_BASE",
             tmp_path / "sessions",
         )
         dir1 = get_session_dir("/my/project")
@@ -420,7 +420,7 @@ class TestSessionStore:
     ) -> None:
         """get_session_dir should return different directories for different cwds."""
         monkeypatch.setattr(
-            "skillkit.session.store._SESSIONS_BASE",
+            "skillengine.session.store._SESSIONS_BASE",
             tmp_path / "sessions",
         )
         dir1 = get_session_dir("/project/a")

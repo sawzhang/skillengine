@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from skillkit.context_files import (
+from skillengine.context_files import (
     CONTEXT_FILE_NAMES,
     ContextFile,
     load_context_files,
@@ -40,9 +40,9 @@ class TestLoadContextFiles:
         assert result == []
 
     def test_finds_agents_md_in_home_dir(self, tmp_path: Path) -> None:
-        """Should find AGENTS.md in ~/.skillkit/."""
+        """Should find AGENTS.md in ~/.skillengine/."""
         home_dir = tmp_path / "home"
-        sk_dir = home_dir / ".skillkit"
+        sk_dir = home_dir / ".skillengine"
         sk_dir.mkdir(parents=True)
         (sk_dir / "AGENTS.md").write_text("global context")
 
@@ -139,7 +139,7 @@ class TestLoadContextFiles:
     def test_home_dir_file_appears_before_ancestor_files(self, tmp_path: Path) -> None:
         """Global context from home_dir should appear before ancestor files."""
         home_dir = tmp_path / "home"
-        sk_dir = home_dir / ".skillkit"
+        sk_dir = home_dir / ".skillengine"
         sk_dir.mkdir(parents=True)
         (sk_dir / "AGENTS.md").write_text("global")
 

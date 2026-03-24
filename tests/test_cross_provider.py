@@ -4,7 +4,7 @@ import hashlib
 
 import pytest
 
-from skillkit.adapters.transform import normalize_tool_call_id, transform_messages
+from skillengine.adapters.transform import normalize_tool_call_id, transform_messages
 
 
 class TestNormalizeToolCallId:
