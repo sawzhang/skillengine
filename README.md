@@ -1,53 +1,78 @@
 # SkillKit
 
-A standalone, framework-agnostic skills execution engine for LLM agents. Provides a Claude Code-like experience with automatic skill discovery, loading, and execution.
+**The open-source skills engine that gives any LLM agent a Claude Code-like experience.**
 
-## Features
+Define skills as Markdown. Load them into any model. Ship agent capabilities without vendor lock-in.
 
-- **Claude Code-like Experience**: `AgentRunner` provides auto-loading, slash commands, and tool execution
-- **On-Demand Skill Loading**: LLM calls the `skill` tool to load full skill content only when needed (progressive disclosure)
-- **Framework Agnostic**: Works with any LLM provider (OpenAI, Anthropic, MiniMaxi, local models)
-- **Markdown-based Skills**: Define skills as simple Markdown files with YAML frontmatter
-- **$ARGUMENTS Substitution**: Support `$ARGUMENTS`, `$1`.`$N`, `${CLAUDE_SESSION_ID}` in skill content
-- **Per-Skill Model & Tools**: Each skill can specify its own `model` and `allowed-tools`
-- **Context Fork**: Run skills in isolated subagent contexts with `context: fork`
-- **Dynamic Content Injection**: `!`command`` syntax executes shell commands before skill content is sent to LLM
-- **Description Budget**: Configurable char budget for skill descriptions in system prompt (default 16K)
-- **Skill Validation**: Enforces naming rules (≤64 chars, lowercase+digits+hyphens) and description limits (≤1024 chars)
-- **User-invocable Skills**: Slash commands like `/pdf`, `/pptx` for direct skill invocation
-- **Eligibility Filtering**: Automatic filtering based on OS, binaries, env vars, and config
-- **Environment Injection**: Securely inject API keys and env vars for skill execution
-- **File Watching**: Hot-reload skills when files change
-- **Multiple Sources**: Load skills from bundled, managed, workspace, and plugin directories
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]()
+[![Python](https://img.shields.io/badge/python-3.10+-blue)]()
+[![License](https://img.shields.io/badge/license-MIT-green)]()
 
-## Installation
+## Why SkillKit?
+
+Every AI agent platform is building its own skills/plugins system — Claude Code has skills, Cursor has rules, ChatGPT has GPTs, Codex has tasks. They're all incompatible, proprietary, and locked to one provider.
+
+SkillKit extracts the **best patterns from Claude Code's skill system** into a standalone, framework-agnostic engine that works with any LLM. Write once, run on OpenAI, Anthropic, MiniMax, or your local model.
+
+```
+Your Skills (Markdown + YAML)
+        │
+        ▼
+   ┌──────────┐
+   │ SkillKit │ ← Framework-agnostic engine
+   └────┬─────┘
+        │
+   ┌────┴────────────────────────┐
+   │         │         │         │
+ OpenAI  Anthropic  MiniMax   Local
+```
+
+## What You Get
+
+- **Markdown-based skills** — Define agent capabilities as simple `SKILL.md` files with YAML frontmatter
+- **On-demand loading** — Only skill names/descriptions in system prompt; full content loaded when the LLM needs it
+- **Slash commands** — `/pdf`, `/pptx`, etc. — user-invocable skills, just like Claude Code
+- **Per-skill model & tools** — Each skill can specify its own model and allowed tools
+- **Context fork** — Run skills in isolated subagent contexts
+- **Dynamic injection** — `$ARGUMENTS`, `$1`..`$N` substitution + `` !`command` `` shell expansion
+- **Eligibility filtering** — Auto-filter skills by OS, binaries, env vars, and config
+- **Hot-reload** — File watcher reloads skills on save, no restart needed
+- **Multi-source** — Load from bundled, managed, workspace, and plugin directories
+- **Validation** — Enforces naming rules, description limits, and metadata schemas
+
+## Quick Start
+
+### Install
 
 ```bash
 # With uv (recommended)
 uv add skillkit
 
-# Basic installation
-pip install skillkit
-
-# With all dependencies
+# Or pip
 pip install skillkit[openai]
 ```
 
-## Quick Start
+### Create a Skill
 
-### 1. Create `.env` file
+Create `skills/my-skill/SKILL.md`:
 
-```bash
-# For MiniMaxi API (OpenAI-compatible)
-OPENAI_BASE_URL=https://api.minimaxi.com/v1
-OPENAI_API_KEY=your-api-key
-MINIMAX_MODEL=MiniMax-M2.1
+```markdown
+---
+name: my-skill
+description: "Summarize any document into bullet points"
+user-invocable: true
+allowed-tools:
+  - Read
+  - Write
+---
 
-# Or for OpenAI
-OPENAI_API_KEY=your-openai-key
+# Document Summarizer
+
+Read the file at $ARGUMENTS and produce a concise bullet-point summary.
+Focus on key decisions, action items, and open questions.
 ```
 
-### 2. Use AgentRunner (Recommended)
+### Run the Agent
 
 ```python
 import asyncio
@@ -55,285 +80,127 @@ from pathlib import Path
 from skillkit import create_agent
 
 async def main():
-    # Create agent with automatic skill loading
     agent = await create_agent(
         skill_dirs=[Path("./skills")],
         system_prompt="You are a helpful assistant.",
-        watch_skills=True,  # Hot-reload on file changes
+        watch_skills=True,
     )
 
-    # Chat with automatic tool execution
+    # Natural language — LLM loads skills on demand
     response = await agent.chat("Help me create a PDF report")
     print(response.content)
 
-    # Use slash commands
+    # Slash command — direct skill invocation
     response = await agent.chat("/pdf extract text from invoice.pdf")
     print(response.content)
 
 asyncio.run(main())
 ```
 
-### 3. Run Interactive Mode
+### Interactive Mode
 
 ```bash
-# Run the demo
 uv run python examples/agent_demo.py --interactive
 ```
 
-Commands in interactive mode:
-- `/skills` - List all available skills
-- `/pdf`, `/pptx`, etc. - Invoke specific skills
-- `/clear` - Clear conversation history
-- `/quit` - Exit
+Commands: `/skills` (list all), `/pdf`, `/pptx` (invoke skill), `/clear`, `/quit`
 
-## Example Skills
+## How Skills Work
 
-The `examples/skills/` directory contains ready-to-use skills:
-
-| Skill | Description | Tools |
-|-------|-------------|-------|
-| **pdf** | PDF text extraction, merging, splitting, form filling | pypdf, pdfplumber, reportlab |
-| **pptx** | PowerPoint creation and editing | python-pptx, markitdown |
-| **algorithmic-art** | Generative art with p5.js | p5.js, HTML/JS |
-| **slack-gif-creator** | Animated GIF creation for Slack | PIL/Pillow |
-| **web-artifacts-builder** | React + Tailwind + shadcn/ui apps | Node.js, Vite, pnpm |
-
-### Testing Skills
-
-```bash
-# Run all skill tests
-uv run python examples/test_skills.py
-
-# Test individual skills interactively
-uv run python examples/agent_demo.py --interactive
+```
+System Prompt (lightweight)              On-Demand Loading (full content)
+┌─────────────────────────┐             ┌──────────────────────────────┐
+│ Available skills:       │   LLM calls │ SKILL.md full content        │
+│ - pdf: PDF extraction   │ ──────────► │ + $ARGUMENTS substituted     │
+│ - pptx: Slide creation  │  skill()    │ + !`commands` expanded       │
+│ - my-skill: Summarizer  │   tool      │ + env vars injected          │
+└─────────────────────────┘             └──────────────────────────────┘
 ```
 
-## Skill Definition Format
+Only names and descriptions live in the system prompt (configurable budget: default 16K chars). The LLM calls `skill(name="pdf", arguments="report.pdf")` to load full content when needed — **progressive disclosure** that keeps context lean.
 
-Create `skills/my-skill/SKILL.md`:
-
-```markdown
----
-name: my-skill
-description: "A helpful skill for doing things"
-metadata:
-  emoji: "🔧"
-  requires:
-    bins: ["some-cli"]
-    env: ["API_KEY"]
-  primary_env: "API_KEY"
-user-invocable: true
----
-
-# My Skill
-
-Instructions for the LLM on how to use this skill...
-
-Process: $ARGUMENTS
-Current git branch: !`git branch --show-current`
-```
-
-### Skill Metadata Options
+## Skill Metadata Reference
 
 ```yaml
 ---
-name: skill-name           # Unique identifier (≤64 chars, lowercase+digits+hyphens)
-description: "Brief desc"  # One-line description for LLM (≤1024 chars)
+name: skill-name                   # ≤64 chars, lowercase + digits + hyphens
+description: "One-line summary"    # ≤1024 chars, shown to LLM
 
-# Claude Agent Skills extensions
 model: claude-sonnet-4-5-20250514  # Per-skill model override
-context: fork              # "fork" to run in isolated subagent
-argument-hint: "<query>"   # Autocomplete hint for slash commands
-allowed-tools:             # Restrict tools available during skill execution
+context: fork                      # Run in isolated subagent
+argument-hint: "<query>"           # Autocomplete hint for slash commands
+user-invocable: true               # Enable /skill-name slash command
+
+allowed-tools:                     # Restrict available tools
   - Read
   - Grep
-  - Glob
-hooks:                     # Per-skill lifecycle hooks
+  - Bash
+
+hooks:                             # Lifecycle hooks
   PreToolExecution: "echo pre"
   PostToolExecution: "echo post"
 
 metadata:
-  emoji: "🔧"              # Visual indicator
-  homepage: "https://..."  # Project URL
-  always: false            # Always include (override eligibility)
-
+  emoji: "🔧"
   requires:
-    bins:                  # Required binaries (ALL must exist)
-      - git
-      - gh
-    any_bins:              # At least ONE must exist
-      - npm
-      - pnpm
-    env:                   # Required environment variables
-      - GITHUB_TOKEN
-    os:                    # Supported platforms
-      - darwin
-      - linux
-
-  primary_env: "API_KEY"   # Primary env var for API key injection
-
-user-invocable: true              # Can user invoke via /skill-name
-disable-model-invocation: false   # Hide from LLM system prompt
+    bins: [git, gh]                # ALL must exist
+    any_bins: [npm, pnpm]          # At least ONE
+    env: [GITHUB_TOKEN]            # Required env vars
+    os: [darwin, linux]            # Supported platforms
+  primary_env: "API_KEY"           # Auto-inject for this skill
 ---
 ```
 
 ### Variable Substitution
 
-Skill content supports dynamic placeholders:
-
 | Placeholder | Description |
 |-------------|-------------|
-| `$ARGUMENTS` | Full arguments string passed to the skill |
-| `$1`, `$2`, ... `$N` | Individual positional arguments (whitespace-split) |
+| `$ARGUMENTS` | Full arguments string |
+| `$1`, `$2`, ... `$N` | Positional arguments |
 | `${CLAUDE_SESSION_ID}` | Current session ID |
-| `` !`command` `` | Replaced with command's stdout before sending to LLM |
+| `` !`command` `` | Replaced with stdout before sending to LLM |
 
-## API Reference
+## Example Skills
 
-### AgentRunner
-
-```python
-from skillkit import AgentRunner, AgentConfig, create_agent
-
-# Quick creation
-agent = await create_agent(
-    skill_dirs=[Path("./skills")],
-    system_prompt="You are helpful.",
-    watch_skills=True,
-)
-
-# Or with full config
-config = AgentConfig(
-    model="MiniMax-M2.1",
-    base_url="https://api.minimaxi.com/v1",
-    api_key="...",
-    max_turns=20,
-    enable_tools=True,
-    skill_description_budget=16000,  # Max chars for skill descriptions in system prompt
-)
-agent = AgentRunner(engine, config)
-
-# Methods
-response = await agent.chat("Hello")           # Single message
-response = await agent.chat("/pdf help")       # Slash command
-async for chunk in agent.chat_stream("Hi"):    # Streaming
-    print(chunk, end="")
-await agent.run_interactive()                   # Interactive mode
-
-# Skill validation
-errors = AgentRunner.validate_skill(skill)
-if errors:
-    print(f"Invalid skill: {errors}")
-```
-
-### Skill Tool (On-Demand Loading)
-
-The LLM automatically gets a `skill` tool that loads full skill content on demand:
-
-```
-Tools available to LLM:
-  - execute          # Run shell commands
-  - execute_script   # Run multi-line scripts
-  - skill            # Load skill content on demand (name, arguments)
-  - <skill>:<action> # Deterministic skill actions
-```
-
-Only skill names and descriptions are in the system prompt. The LLM calls `skill(name="pdf", arguments="report.pdf")` to load the full SKILL.md content when needed.
-
-### SkillsEngine (Low-level)
-
-```python
-from skillkit import SkillsEngine, SkillsConfig
-
-engine = SkillsEngine(
-    config=SkillsConfig(
-        skill_dirs=[Path("./skills")],
-        watch=True,
-    )
-)
-
-# Load and filter skills
-snapshot = engine.get_snapshot()
-print(f"Loaded {len(snapshot.skills)} skills")
-print(snapshot.prompt)  # For LLM system prompt
-
-# Execute commands
-result = await engine.execute("echo 'Hello'")
-print(result.output)
-
-# With environment injection
-with engine.env_context():
-    result = await engine.execute("gh pr list")
-```
-
-## Configuration
-
-### Environment Variables
-
-```bash
-# LLM API
-OPENAI_BASE_URL=https://api.minimaxi.com/v1
-OPENAI_API_KEY=your-key
-MINIMAX_MODEL=MiniMax-M2.1
-
-# Or standard OpenAI
-OPENAI_API_KEY=your-openai-key
-```
-
-### YAML Config
-
-```yaml
-skill_dirs:
-  - ./skills
-  - ~/.agent/skills
-
-watch: true
-watch_debounce_ms: 250
-
-entries:
-  github:
-    enabled: true
-    api_key: "ghp_..."
-    env:
-      GITHUB_ORG: "my-org"
-
-prompt_format: xml  # xml, markdown, or json
-default_timeout_seconds: 30
-```
+| Skill | Description | Deps |
+|-------|-------------|------|
+| **pdf** | PDF extraction, merging, splitting, form filling | pypdf, pdfplumber, reportlab |
+| **pptx** | PowerPoint creation and editing | python-pptx, markitdown |
+| **algorithmic-art** | Generative art with p5.js | p5.js, HTML/JS |
+| **slack-gif-creator** | Animated GIF creation | PIL/Pillow |
+| **web-artifacts-builder** | React + Tailwind + shadcn/ui apps | Node.js, Vite |
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
 │                 AgentRunner                      │
-│  - System prompt: skill names + descriptions    │
-│  - Skill tool: on-demand full content loading   │
-│  - $ARGUMENTS substitution + !`cmd` injection   │
-│  - context: fork → isolated child agent         │
-│  - Slash commands (/pdf, /pptx)                 │
+│  - System prompt with skill discovery           │
+│  - On-demand skill loading via tool call        │
+│  - Slash commands + argument substitution       │
 │  - Per-skill model switching + tool restriction │
+│  - Context fork for isolated execution          │
 ├─────────────────────────────────────────────────┤
 │                 SkillsEngine                     │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐         │
 │  │ Loader  │  │ Filter  │  │ Runtime │         │
 │  └────┬────┘  └────┬────┘  └────┬────┘         │
-│       │            │            │              │
-│       v            v            v              │
+│       ▼            ▼            ▼              │
 │  ┌─────────────────────────────────────┐       │
 │  │          SkillSnapshot              │       │
-│  │  - skills: List[Skill]              │       │
-│  │  - prompt: str (metadata only)      │       │
+│  │  - Discovered skills + metadata     │       │
+│  │  - System prompt fragment           │       │
 │  └─────────────────────────────────────┘       │
+├─────────────────────────────────────────────────┤
+│          Event System (P0 roadmap)               │
+│  before_tool_call · after_tool_result            │
+│  context_transform · turn_start · turn_end       │
 └─────────────────────────────────────────────────┘
-                      │
-                      v
-┌─────────────────────────────────────────────────┐
-│              LLM Providers                       │
-│  OpenAI  │  MiniMaxi  │  Anthropic  │  Custom   │
-└─────────────────────────────────────────────────┘
+        │              │              │
+     OpenAI       Anthropic       MiniMax / Local
 ```
 
-## Extending
+## Extending SkillKit
 
 ### Custom Loader
 
@@ -345,7 +212,6 @@ class YAMLSkillLoader(SkillLoader):
         return path.suffix == ".yaml"
 
     def load_skill(self, path: Path, source: SkillSource) -> SkillEntry:
-        # Custom loading logic
         ...
 ```
 
@@ -373,19 +239,29 @@ class DockerRuntime(SkillRuntime):
         ...
 ```
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the full technical roadmap. Summary:
+
+| Phase | Priority | Feature |
+|-------|----------|---------|
+| 1 | P0 | Event system (lifecycle hooks, tool guards) |
+| 1 | P0 | Structured stream events (thinking, tools, text) |
+| 2 | P1 | Model metadata registry (cost, context window, capabilities) |
+| 2 | P1 | Context management pipeline (compaction, pruning, token budgets) |
+| 3 | P2 | Tool execution streaming (live output) |
+| 3 | P2 | Steering & abort (cancel, interrupt, redirect mid-execution) |
+| 4 | P3 | Dynamic provider registry (runtime adapter switching) |
+
 ## Development
 
 ```bash
-# Clone and install
-git clone https://github.com/sawzhang/skillkit.git
-cd skillkit
+git clone https://github.com/sawzhang/skillengine.git
+cd skillengine
 uv sync
 
 # Run tests
 pytest
-
-# Run skill tests
-uv run python examples/test_skills.py
 
 # Linting
 ruff check src/
@@ -395,4 +271,4 @@ mypy src/
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT
