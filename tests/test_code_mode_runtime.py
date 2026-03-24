@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from skillkit.runtime.code_mode import CodeModeRuntime
+from skillengine.runtime.code_mode import CodeModeRuntime
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -539,8 +539,8 @@ class TestCodeModeEngineIntegration:
     @pytest.mark.asyncio
     async def test_used_as_engine_runtime(self, spec: dict, client: MockClient) -> None:
         """CodeModeRuntime can be passed to SkillsEngine as runtime."""
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         runtime = CodeModeRuntime(spec=spec, ctx={"client": client})
         engine = SkillsEngine(

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.memory.client import OpenVikingClient
-from skillkit.memory.config import MemoryConfig
+from skillengine.memory.client import OpenVikingClient
+from skillengine.memory.config import MemoryConfig
 
 
 @pytest.fixture
@@ -254,7 +254,7 @@ class TestAddResource:
 class TestInitialize:
     @pytest.mark.asyncio
     async def test_sets_available_on_healthy(self, client):
-        with patch("skillkit.memory.client.OpenVikingClient.health", return_value=True):
+        with patch("skillengine.memory.client.OpenVikingClient.health", return_value=True):
             # Mock httpx import
             mock_httpx = MagicMock()
             mock_async_client = AsyncMock()
@@ -269,7 +269,7 @@ class TestInitialize:
 
     @pytest.mark.asyncio
     async def test_unavailable_on_unhealthy(self, client):
-        with patch("skillkit.memory.client.OpenVikingClient.health", return_value=False):
+        with patch("skillengine.memory.client.OpenVikingClient.health", return_value=False):
             mock_httpx = MagicMock()
             mock_async_client = AsyncMock()
             mock_httpx.AsyncClient.return_value = mock_async_client

@@ -4,9 +4,9 @@ import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from skillkit.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
-from skillkit.a2a.registry import AgentRegistry
-from skillkit.models import Skill, SkillMetadata
+from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
+from skillengine.a2a.registry import AgentRegistry
+from skillengine.models import Skill, SkillMetadata
 
 
 def _make_skill(name: str, description: str, expose: bool = False) -> Skill:
@@ -82,7 +82,7 @@ class TestA2AServerCreation:
     """Test server creation without FastAPI dependency."""
 
     def test_server_init(self):
-        from skillkit.a2a.server import A2AServer
+        from skillengine.a2a.server import A2AServer
 
         engine = MagicMock()
         registry = AgentRegistry()
@@ -90,10 +90,10 @@ class TestA2AServerCreation:
 
         assert server.engine is engine
         assert server.registry is registry
-        assert server.server_name == "skillkit"
+        assert server.server_name == "skillengine"
 
     def test_server_custom_config(self):
-        from skillkit.a2a.server import A2AServer
+        from skillengine.a2a.server import A2AServer
 
         server = A2AServer(
             engine=MagicMock(),
@@ -110,7 +110,7 @@ class TestA2AServerApp:
 
     @pytest.fixture
     def server(self):
-        from skillkit.a2a.server import A2AServer
+        from skillengine.a2a.server import A2AServer
 
         engine = MagicMock()
         registry = AgentRegistry()

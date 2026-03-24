@@ -53,7 +53,7 @@ def main():
     w('    <mxCell id="1" parent="0"/>')
 
     # Title
-    box("2", "SkillKit \u2014 Agent Skills Engine Architecture",
+    box("2", "SkillEngine \u2014 Agent Skills Engine Architecture",
         "text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;", 400, 20, 800, 40)
 
     # USER / LLM Layer
@@ -187,7 +187,7 @@ def main():
 
     # Write the .drawio file with compressed content
     output = f'''<mxfile host="app.diagrams.net" modified="2026-02-20T00:00:00.000Z" agent="5.0" etag="gen" version="24.2.0" type="device">
-  <diagram name="SkillKit Architecture" id="skillkit_arch">{encoded}</diagram>
+  <diagram name="SkillEngine Architecture" id="skillengine_arch">{encoded}</diagram>
 </mxfile>
 '''
     with open("/Users/sawzhang/code/agent-skills-engine/docs/architecture.drawio", "w") as f:

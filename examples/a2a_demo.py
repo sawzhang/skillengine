@@ -3,8 +3,8 @@
 import sys
 from pathlib import Path
 
-from skillkit import SkillsConfig, SkillsEngine
-from skillkit.a2a import AgentCard, AgentRegistry
+from skillengine import SkillsConfig, SkillsEngine
+from skillengine.a2a import AgentCard, AgentRegistry
 
 
 def main():

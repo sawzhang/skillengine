@@ -1,4 +1,4 @@
-# SkillKit A2A 集成方案
+# SkillEngine A2A 集成方案
 
 > Skill 是资产，Runtime 是可替换的。Orchestrator 的智能程度 = 它对下游 Agent 的理解深度。
 
@@ -86,7 +86,7 @@ a2a:
 ### 1. AgentCard — 从 Skill 自动生成
 
 ```
-新文件：src/skillkit/a2a/agent_card.py
+新文件：src/skillengine/a2a/agent_card.py
 ```
 
 ```python
@@ -186,7 +186,7 @@ class AgentCapabilities:
 ### 2. AgentRegistry — 注册、发现、索引
 
 ```
-新文件：src/skillkit/a2a/registry.py
+新文件：src/skillengine/a2a/registry.py
 ```
 
 ```python
@@ -314,15 +314,15 @@ class AgentStats:
 ### 3. A2A Transport — Server + Client
 
 ```
-新文件：src/skillkit/a2a/server.py
-新文件：src/skillkit/a2a/client.py
+新文件：src/skillengine/a2a/server.py
+新文件：src/skillengine/a2a/client.py
 ```
 
-**Server**（让 SkillKit Agent 可被外部 A2A 调用）：
+**Server**（让 SkillEngine Agent 可被外部 A2A 调用）：
 
 ```python
 class A2AServer:
-    """将 SkillKit 的 Skill 暴露为 A2A 端点。
+    """将 SkillEngine 的 Skill 暴露为 A2A 端点。
 
     端点：
     - GET  /.well-known/agent.json  → Agent Card
@@ -428,7 +428,7 @@ def create_a2a_tool(client: A2AClient, registry: AgentRegistry) -> dict:
 ### 4. Orchestrator 集成 — 理解下游 Agent
 
 ```
-修改文件：src/skillkit/agent.py
+修改文件：src/skillengine/agent.py
 ```
 
 在现有 `AgentRunner` 中集成 Registry，实现两层理解：
@@ -478,15 +478,15 @@ class AgentRunner:
 ### 5. 与 Claude Agent SDK 的桥接
 
 ```
-新文件：src/skillkit/a2a/claude_sdk_bridge.py
+新文件：src/skillengine/a2a/claude_sdk_bridge.py
 ```
 
 ```python
 class ClaudeSDKBridge:
-    """将 SkillKit Skill 桥接为 Claude Agent SDK 的执行模式。
+    """将 SkillEngine Skill 桥接为 Claude Agent SDK 的执行模式。
 
     实现「一套 Skill 资产，两种运行模式」：
-    - 模式 1：SkillKit 原生 AgentRunner（自有 agent loop）
+    - 模式 1：SkillEngine 原生 AgentRunner（自有 agent loop）
     - 模式 2：Claude Agent SDK query()（借用 Claude 的 agent loop）
     """
 
@@ -560,7 +560,7 @@ class ClaudeSDKBridge:
                     └──────────────┬──────────────┘
                                    │
                     ┌──────────────▼──────────────┐
-                    │      SkillKit Engine         │
+                    │      SkillEngine Engine         │
                     │  Loader → Filter → Engine    │
                     └──────────────┬──────────────┘
                                    │
@@ -568,7 +568,7 @@ class ClaudeSDKBridge:
               │                    │                     │
     ┌─────────▼─────────┐ ┌───────▼────────┐ ┌─────────▼─────────┐
     │  AgentRunner       │ │  Claude SDK    │ │  A2A Server       │
-    │  (SkillKit 原生)   │ │  Bridge        │ │  (HTTP 暴露)      │
+    │  (SkillEngine 原生)   │ │  Bridge        │ │  (HTTP 暴露)      │
     │                    │ │                │ │                    │
     │  EventBus          │ │  query()       │ │  /.well-known/    │
     │  Scheduler         │ │  stream()      │ │  /tasks           │
@@ -603,7 +603,7 @@ class ClaudeSDKBridge:
 ## 文件清单
 
 ```
-src/skillkit/a2a/
+src/skillengine/a2a/
 ├── __init__.py
 ├── agent_card.py        # AgentCard, AgentCardSkill, AgentCapabilities
 ├── registry.py          # AgentRegistry, RegisteredAgent, AgentStats
@@ -613,10 +613,10 @@ src/skillkit/a2a/
 └── models.py            # A2ATaskRequest, A2ATaskResponse
 
 # 修改
-src/skillkit/agent.py    # AgentRunner 集成 Registry + awareness injection
-src/skillkit/models.py   # Skill 新增 a2a frontmatter 解析
-src/skillkit/loaders/    # MarkdownSkillLoader 解析 a2a: 块
-src/skillkit/config.py   # AgentConfig 新增 a2a_base_url, a2a_remote_agents
+src/skillengine/agent.py    # AgentRunner 集成 Registry + awareness injection
+src/skillengine/models.py   # Skill 新增 a2a frontmatter 解析
+src/skillengine/loaders/    # MarkdownSkillLoader 解析 a2a: 块
+src/skillengine/config.py   # AgentConfig 新增 a2a_base_url, a2a_remote_agents
 
 # 测试
 tests/test_agent_card.py
@@ -660,12 +660,12 @@ assert matches[0].card.name == "outdoor-planner"  # 而不是 "weather"
 1. 实现 `A2AServer` — `/.well-known/agent.json` + `/tasks`
 2. 实现 `ClaudeSDKBridge.run_skill_via_sdk()` — SKILL.md → SDK query
 3. Loader 支持解析 `a2a:` frontmatter 块
-4. 验证：外部系统通过 HTTP 调用 SkillKit Agent
+4. 验证：外部系统通过 HTTP 调用 SkillEngine Agent
 
 **验证标准**：
 ```bash
 # 启动 A2A Server
-skillkit serve --port 8080
+skillengine serve --port 8080
 
 # 外部发现
 curl http://localhost:8080/.well-known/agent.json

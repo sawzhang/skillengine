@@ -22,8 +22,8 @@ _mock_boxlite.Execution = MagicMock  # type: ignore[attr-defined]
 
 sys.modules["boxlite"] = _mock_boxlite
 
-from skillkit.runtime.base import ExecutionResult  # noqa: E402
-from skillkit.runtime.boxlite import BoxLiteRuntime, SecurityLevel  # noqa: E402
+from skillengine.runtime.base import ExecutionResult  # noqa: E402
+from skillengine.runtime.boxlite import BoxLiteRuntime, SecurityLevel  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +218,7 @@ class TestBoxLiteRuntimeScript:
         first_call = mock_box.exec.call_args_list[0]
         cmd_str = first_call[0][2]  # "bash", "-c", <write command>
         assert "cat >" in cmd_str
-        assert "_skillkit_" in cmd_str
+        assert "_skillengine_" in cmd_str
         assert "SKILLKIT_SCRIPT_EOF" in cmd_str
 
 
@@ -553,8 +553,8 @@ class TestBoxLiteRuntimeEngineIntegration:
     @pytest.mark.asyncio
     async def test_used_as_engine_runtime(self, mock_box: AsyncMock) -> None:
         """BoxLiteRuntime can be passed to SkillsEngine as runtime."""
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         exec_result = _make_exec_result(stdout="engine_output\n")
         execution = _make_execution(exec_result)

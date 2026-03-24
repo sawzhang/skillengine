@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from skillkit.cli import cmd_list, cmd_show, cmd_prompt, _create_engine
+from skillengine.cli import cmd_list, cmd_show, cmd_prompt, _create_engine
 
 
 class MockArgs:

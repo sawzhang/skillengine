@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from skillkit.memory.client import OpenVikingClient
-from skillkit.memory.config import MemoryConfig
-from skillkit.memory.tools import (
+from skillengine.memory.client import OpenVikingClient
+from skillengine.memory.config import MemoryConfig
+from skillengine.memory.tools import (
     MemoryState,
     build_memory_tools,
     make_add_knowledge_handler,

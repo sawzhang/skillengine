@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from skillkit import SkillsConfig, SkillsEngine
-from skillkit.adapters.base import AgentResponse, LLMAdapter, Message
+from skillengine import SkillsConfig, SkillsEngine
+from skillengine.adapters.base import AgentResponse, LLMAdapter, Message
 
 
 class MockAdapter(LLMAdapter):

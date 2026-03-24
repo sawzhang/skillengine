@@ -1,12 +1,15 @@
 """Tests for extension tool dispatch in AgentRunner."""
 
+import asyncio
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.agent import AgentConfig, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.extensions.manager import ExtensionManager
+from skillengine.agent import AgentConfig, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.extensions.manager import ExtensionManager
+from skillengine.extensions.models import ToolInfo
 
 
 @pytest.fixture
@@ -26,9 +29,7 @@ class TestGetToolsIncludesExtensionTools:
         names = [t["function"]["name"] for t in tools]
         assert "execute" in names
         assert "execute_script" in names
-        assert "edit" in names
-        assert "apply_patch" in names
-        assert len(tools) == 6  # execute, execute_script, write, read, edit, apply_patch
+        assert len(tools) == 4  # execute, execute_script, write, read
 
     def test_with_extension_tools(self, runner):
         runner.engine.extensions = ExtensionManager(runner.engine)
@@ -44,9 +45,8 @@ class TestGetToolsIncludesExtensionTools:
         names = [t["function"]["name"] for t in tools]
         assert "execute" in names
         assert "execute_script" in names
-        assert "edit" in names
         assert "my_custom_tool" in names
-        assert len(tools) == 7  # 6 builtin + 1 extension
+        assert len(tools) == 5  # 4 builtin + 1 extension
 
     def test_extension_tool_schema(self, runner):
         runner.engine.extensions = ExtensionManager(runner.engine)
@@ -159,43 +159,3 @@ class TestExecuteToolDispatchesExtensionTools:
             "id": "call_5",
         })
         assert "hello" in result
-
-    @pytest.mark.asyncio
-    async def test_apply_patch_tool_dispatch(self, runner, tmp_path):
-        target = tmp_path / "demo.txt"
-        target.write_text("hello world\n", encoding="utf-8")
-
-        result = await runner._execute_tool({
-            "name": "apply_patch",
-            "arguments": json.dumps(
-                {
-                    "type": "update_file",
-                    "path": str(target),
-                    "diff": "-hello world\n+hello skillkit",
-                }
-            ),
-            "id": "call_6",
-        })
-
-        assert "Updated" in result
-        assert target.read_text(encoding="utf-8") == "hello skillkit\n"
-
-    @pytest.mark.asyncio
-    async def test_edit_tool_dispatch(self, runner, tmp_path):
-        target = tmp_path / "demo.txt"
-        target.write_text("hello world\n", encoding="utf-8")
-
-        result = await runner._execute_tool({
-            "name": "edit",
-            "arguments": json.dumps(
-                {
-                    "file_path": str(target),
-                    "old_string": "world",
-                    "new_string": "skillkit",
-                }
-            ),
-            "id": "call_7",
-        })
-
-        assert "Edited" in result
-        assert target.read_text(encoding="utf-8") == "hello skillkit\n"

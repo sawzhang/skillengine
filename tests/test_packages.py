@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from skillkit.packages.models import (
+from skillengine.packages.models import (
     PackageManifest,
     ResolvedPackage,
     PathMetadata,
 )
-from skillkit.packages.source import PackageSource, parse_source
-from skillkit.packages.manager import PackageManager
+from skillengine.packages.source import PackageSource, parse_source
+from skillengine.packages.manager import PackageManager
 
 
 class TestPackageManifest:
@@ -103,13 +103,13 @@ class TestPathMetadata:
             source="pypi",
             scope="user",
             origin="package",
-            base_dir="/home/user/.skillkit",
+            base_dir="/home/user/.skillengine",
         )
 
         assert meta.source == "pypi"
         assert meta.scope == "user"
         assert meta.origin == "package"
-        assert meta.base_dir == "/home/user/.skillkit"
+        assert meta.base_dir == "/home/user/.skillengine"
 
 
 class TestResolvedPackage:
@@ -284,7 +284,7 @@ class TestPackageManager:
 
         pyproject = pkg_dir / "pyproject.toml"
         pyproject.write_text(
-            '[tool.skillkit]\n'
+            '[tool.skillengine]\n'
             'skills = ["./skills/*.md"]\n'
         )
 
@@ -305,7 +305,7 @@ class TestPackageManager:
         pkg_dir.mkdir()
         pyproject = pkg_dir / "pyproject.toml"
         pyproject.write_text(
-            '[tool.skillkit]\n'
+            '[tool.skillengine]\n'
             'extensions = ["./ext.py"]\n'
             'skills = ["./skills/**/*.md"]\n'
             'themes = ["./themes/*.json"]\n'
@@ -325,8 +325,8 @@ class TestPackageManager:
         assert manifest.prompts == ["./prompts/*.md"]
         assert manifest.is_empty is False
 
-    def test_load_manifest_no_skillkit_section(self, tmp_path: Path) -> None:
-        """Should return None when pyproject.toml has no skillkit section."""
+    def test_load_manifest_no_skillengine_section(self, tmp_path: Path) -> None:
+        """Should return None when pyproject.toml has no skillengine section."""
         pkg_dir = tmp_path / "plain-package"
         pkg_dir.mkdir()
         pyproject = pkg_dir / "pyproject.toml"
@@ -386,7 +386,7 @@ class TestPackageManager:
             skills_dir.mkdir()
             (skills_dir / f"{name}-skill.md").write_text(f"# {name}\n")
             (pkg_dir / "pyproject.toml").write_text(
-                '[tool.skillkit]\n'
+                '[tool.skillengine]\n'
                 'skills = ["./skills/*.md"]\n'
             )
 
@@ -410,7 +410,7 @@ class TestPackageManager:
         skills_dir.mkdir()
         (skills_dir / "skill.md").write_text("# Skill\n")
         (pkg_dir / "pyproject.toml").write_text(
-            '[tool.skillkit]\n'
+            '[tool.skillengine]\n'
             'skills = ["./skills/*.md"]\n'
         )
 
@@ -443,11 +443,11 @@ class TestPackageManager:
         project_dir = tmp_path / "project_packages"
         project_dir.mkdir()
 
-        # Package with empty skillkit section
+        # Package with empty skillengine section
         pkg_dir = project_dir / "empty-manifest"
         pkg_dir.mkdir()
         (pkg_dir / "pyproject.toml").write_text(
-            '[tool.skillkit]\n'
+            '[tool.skillengine]\n'
         )
 
         manager = PackageManager(

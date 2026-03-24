@@ -22,10 +22,10 @@ if "boxlite" not in sys.modules:
     _mock_boxlite.Execution = MagicMock  # type: ignore[attr-defined]
     sys.modules["boxlite"] = _mock_boxlite
 
-from skillkit.config import SkillsConfig  # noqa: E402
-from skillkit.engine import SkillsEngine  # noqa: E402
-from skillkit.runtime.boxlite import BoxLiteRuntime  # noqa: E402
-from skillkit.sandbox.runner import SandboxedAgentRunner  # noqa: E402
+from skillengine.config import SkillsConfig  # noqa: E402
+from skillengine.engine import SkillsEngine  # noqa: E402
+from skillengine.runtime.boxlite import BoxLiteRuntime  # noqa: E402
+from skillengine.sandbox.runner import SandboxedAgentRunner  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ class TestSandboxedRunnerInit:
         assert runner._box_runtime is runtime
 
     def test_rejects_non_boxlite_runtime(self) -> None:
-        from skillkit.runtime.bash import BashRuntime
+        from skillengine.runtime.bash import BashRuntime
 
         engine = SkillsEngine(config=SkillsConfig(skill_dirs=[]), runtime=BashRuntime())
         with pytest.raises(TypeError, match="requires a BoxLiteRuntime"):

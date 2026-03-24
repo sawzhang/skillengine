@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from skillkit.runtime.code_mode import CodeModeRuntime
+from skillengine.runtime.code_mode import CodeModeRuntime
 
 # ── Fake OpenAPI spec (simulates a large API) ──────────────────────
 
@@ -259,7 +259,7 @@ else:
 
     header("6. Engine Integration — drop-in replacement for BashRuntime")
 
-    from skillkit import SkillsConfig, SkillsEngine
+    from skillengine import SkillsConfig, SkillsEngine
 
     engine = SkillsEngine(
         config=SkillsConfig(skill_dirs=[]),

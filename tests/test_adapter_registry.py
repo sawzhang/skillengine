@@ -9,13 +9,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.adapters.base import AgentResponse, LLMAdapter, Message
-from skillkit.adapters.registry import AdapterFactory, AdapterRegistry
-from skillkit.agent import AgentConfig, AgentMessage, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.events import EventBus, StreamEvent
-from skillkit.extensions.api import ExtensionAPI
-from skillkit.extensions.manager import ExtensionManager
+from skillengine.adapters.base import AgentResponse, LLMAdapter, Message
+from skillengine.adapters.registry import AdapterFactory, AdapterRegistry
+from skillengine.agent import AgentConfig, AgentMessage, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.events import EventBus, StreamEvent
+from skillengine.extensions.api import ExtensionAPI
+from skillengine.extensions.manager import ExtensionManager
 
 
 # ---------------------------------------------------------------------------
@@ -458,7 +458,7 @@ class TestMessageConversion:
 
     def test_adapter_response_to_agent_message(self) -> None:
         runner = _make_runner()
-        from skillkit.model_registry import TokenUsage
+        from skillengine.model_registry import TokenUsage
 
         response = AgentResponse(
             content="result",
@@ -551,9 +551,9 @@ class TestExtensionAdapterRegistration:
 
 class TestPhase4Exports:
     def test_adapter_registry_exported(self) -> None:
-        from skillkit import AdapterRegistry
+        from skillengine import AdapterRegistry
         assert AdapterRegistry is not None
 
     def test_adapter_factory_exported(self) -> None:
-        from skillkit import AdapterFactory
+        from skillengine import AdapterFactory
         assert AdapterFactory is not None

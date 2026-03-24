@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.events import (
+from skillengine.events import (
     BEFORE_TOOL_CALL,
     EventBus,
     StreamEvent,
@@ -95,9 +95,9 @@ class TestLLMAdapterStreamEvents:
 
     def test_default_wraps_chat(self) -> None:
         """Default implementation should wrap chat() into events."""
-        from skillkit.adapters.base import AgentResponse, LLMAdapter, Message
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.adapters.base import AgentResponse, LLMAdapter, Message
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         class MockAdapter(LLMAdapter):
             async def chat(self, messages, system_prompt=None, **kwargs):
@@ -120,9 +120,9 @@ class TestLLMAdapterStreamEvents:
 
     def test_default_with_tool_calls(self) -> None:
         """Default implementation should emit tool_call events for tool_calls."""
-        from skillkit.adapters.base import AgentResponse, LLMAdapter, Message
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.adapters.base import AgentResponse, LLMAdapter, Message
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         class MockAdapter(LLMAdapter):
             async def chat(self, messages, system_prompt=None, **kwargs):
@@ -158,9 +158,9 @@ class TestLLMAdapterStreamEvents:
 
     def test_default_empty_content(self) -> None:
         """No text events when content is empty (only tool calls)."""
-        from skillkit.adapters.base import AgentResponse, LLMAdapter, Message
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.adapters.base import AgentResponse, LLMAdapter, Message
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         class MockAdapter(LLMAdapter):
             async def chat(self, messages, system_prompt=None, **kwargs):
@@ -189,9 +189,9 @@ class TestLLMAdapterStreamEvents:
 
     def test_chat_stream_wraps_events(self) -> None:
         """chat_stream() should yield only text content from events."""
-        from skillkit.adapters.base import AgentResponse, LLMAdapter, Message
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.adapters.base import AgentResponse, LLMAdapter, Message
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         class MockAdapter(LLMAdapter):
             async def chat(self, messages, system_prompt=None, **kwargs):
@@ -219,9 +219,9 @@ class TestAgentRunnerStreamEvents:
 
     def _make_runner(self, events: EventBus | None = None) -> Any:
         """Create a minimal AgentRunner with mocked LLM."""
-        from skillkit.agent import AgentConfig, AgentRunner
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.agent import AgentConfig, AgentRunner
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         config = SkillsConfig(skill_dirs=[])
         engine = SkillsEngine(config=config)
@@ -454,9 +454,9 @@ class TestAgentRunnerStreamEvents:
 
     def test_max_turns_emits_done(self) -> None:
         """Reaching max_turns should emit done with finish_reason='max_turns'."""
-        from skillkit.agent import AgentConfig, AgentRunner
-        from skillkit.config import SkillsConfig
-        from skillkit.engine import SkillsEngine
+        from skillengine.agent import AgentConfig, AgentRunner
+        from skillengine.config import SkillsConfig
+        from skillengine.engine import SkillsEngine
 
         config = SkillsConfig(skill_dirs=[])
         engine = SkillsEngine(config=config)

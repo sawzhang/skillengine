@@ -5,7 +5,7 @@ from textwrap import dedent
 
 import pytest
 
-from skillkit.config import SkillEntryConfig, SkillsConfig
+from skillengine.config import SkillEntryConfig, SkillsConfig
 
 
 class TestSkillsConfig:

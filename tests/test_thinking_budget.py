@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillkit.model_registry import (
+from skillengine.model_registry import (
     DEFAULT_THINKING_BUDGETS,
     ThinkingLevel,
     TokenUsage,
@@ -215,19 +215,19 @@ class TestTokenUsageThinking:
 
 class TestAgentConfigThinking:
     def test_default_none(self):
-        from skillkit.agent import AgentConfig
+        from skillengine.agent import AgentConfig
 
         config = AgentConfig()
         assert config.thinking_level is None
 
     def test_set_level(self):
-        from skillkit.agent import AgentConfig
+        from skillengine.agent import AgentConfig
 
         config = AgentConfig(thinking_level="high")
         assert config.thinking_level == "high"
 
     def test_transport_default(self):
-        from skillkit.agent import AgentConfig
+        from skillengine.agent import AgentConfig
 
         config = AgentConfig()
         assert config.transport == "sse"
@@ -250,14 +250,14 @@ except ImportError:
 class TestAnthropicAdapterThinking:
     @pytest.fixture
     def engine(self, tmp_path: Path) -> Any:
-        from skillkit import SkillsConfig, SkillsEngine
+        from skillengine import SkillsConfig, SkillsEngine
 
         return SkillsEngine(config=SkillsConfig(skill_dirs=[]))
 
     @pytest.mark.asyncio
     async def test_adaptive_thinking_params(self, engine: Any):
-        from skillkit.adapters.anthropic import AnthropicAdapter
-        from skillkit.adapters.base import Message
+        from skillengine.adapters.anthropic import AnthropicAdapter
+        from skillengine.adapters.base import Message
 
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -283,8 +283,8 @@ class TestAnthropicAdapterThinking:
 
     @pytest.mark.asyncio
     async def test_budget_thinking_params(self, engine: Any):
-        from skillkit.adapters.anthropic import AnthropicAdapter
-        from skillkit.adapters.base import Message
+        from skillengine.adapters.anthropic import AnthropicAdapter
+        from skillengine.adapters.base import Message
 
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -312,8 +312,8 @@ class TestAnthropicAdapterThinking:
 
     @pytest.mark.asyncio
     async def test_thinking_tokens_extraction(self, engine: Any):
-        from skillkit.adapters.anthropic import AnthropicAdapter
-        from skillkit.adapters.base import Message
+        from skillengine.adapters.anthropic import AnthropicAdapter
+        from skillengine.adapters.base import Message
 
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -345,14 +345,14 @@ class TestAnthropicAdapterThinking:
 class TestOpenAIAdapterThinking:
     @pytest.fixture
     def engine(self, tmp_path: Path) -> Any:
-        from skillkit import SkillsConfig, SkillsEngine
+        from skillengine import SkillsConfig, SkillsEngine
 
         return SkillsEngine(config=SkillsConfig(skill_dirs=[]))
 
     @pytest.mark.asyncio
     async def test_reasoning_effort_for_o3(self, engine: Any):
-        from skillkit.adapters.base import Message
-        from skillkit.adapters.openai import OpenAIAdapter
+        from skillengine.adapters.base import Message
+        from skillengine.adapters.openai import OpenAIAdapter
 
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -378,8 +378,8 @@ class TestOpenAIAdapterThinking:
 
     @pytest.mark.asyncio
     async def test_no_reasoning_effort_for_gpt4(self, engine: Any):
-        from skillkit.adapters.base import Message
-        from skillkit.adapters.openai import OpenAIAdapter
+        from skillengine.adapters.base import Message
+        from skillengine.adapters.openai import OpenAIAdapter
 
         mock_client = MagicMock()
         mock_response = MagicMock()

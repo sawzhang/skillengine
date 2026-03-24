@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from skillkit.models import ImageContent, MessageContent, TextContent
+from skillengine.models import ImageContent, MessageContent, TextContent
 
 
 class TestTextContent:

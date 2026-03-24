@@ -1,6 +1,6 @@
 [project]
-name = "skillkit"
-version = "0.1.0"
+name = "skillengine"
+dynamic = ["version"]
 description = "A standalone skills execution engine for LLM agents"
 readme = "README.md"
 license = { text = "MIT" }
@@ -54,18 +54,28 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/alexzhang2015/skillkit"
-Repository = "https://github.com/alexzhang2015/skillkit"
+Homepage = "https://github.com/sawzhang/skillengine"
+Repository = "https://github.com/sawzhang/skillengine"
 
 [project.scripts]
-skills = "skillkit.cli:main"
+skills = "skillengine.cli:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "guess-next-dev"
+local_scheme = "no-local-version"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/skillengine/_version.py"
+
 [tool.hatch.build.targets.wheel]
-packages = ["src/skillkit"]
+packages = ["src/skillengine"]
 
 [tool.ruff]
 line-length = 100
@@ -83,20 +93,20 @@ disallow_untyped_calls = false
 
 [[tool.mypy.overrides]]
 module = [
-    "skillkit.agent",
-    "skillkit.session.*",
-    "skillkit.memory.*",
-    "skillkit.runtime.*",
-    "skillkit.adapters.openai",
-    "skillkit.extensions.manager",
-    "skillkit.context",
-    "skillkit.cli",
-    "skillkit.transports.*",
-    "skillkit.tools.*",
-    "skillkit.modes.*",
-    "skillkit.packages.*",
-    "skillkit.utils.*",
-    "skillkit.web.*",
+    "skillengine.agent",
+    "skillengine.session.*",
+    "skillengine.memory.*",
+    "skillengine.runtime.*",
+    "skillengine.adapters.openai",
+    "skillengine.extensions.manager",
+    "skillengine.context",
+    "skillengine.cli",
+    "skillengine.transports.*",
+    "skillengine.tools.*",
+    "skillengine.modes.*",
+    "skillengine.packages.*",
+    "skillengine.utils.*",
+    "skillengine.web.*",
 ]
 disable_error_code = [
     "assignment",

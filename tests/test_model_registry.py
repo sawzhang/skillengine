@@ -2,7 +2,7 @@
 
 import pytest
 
-from skillkit.model_registry import (
+from skillengine.model_registry import (
     CostBreakdown,
     ModelCost,
     ModelDefinition,
@@ -285,7 +285,7 @@ class TestModelRegistry:
 
 class TestModelsCatalog:
     def test_catalog_loads(self):
-        from skillkit.models_catalog import get_default_models
+        from skillengine.models_catalog import get_default_models
 
         models = get_default_models()
         assert len(models) > 0
@@ -296,7 +296,7 @@ class TestModelsCatalog:
             assert m.provider
 
     def test_catalog_has_major_providers(self):
-        from skillkit.models_catalog import get_default_models
+        from skillengine.models_catalog import get_default_models
 
         models = get_default_models()
         providers = {m.provider for m in models}
@@ -304,7 +304,7 @@ class TestModelsCatalog:
         assert "anthropic" in providers
 
     def test_catalog_costs_positive(self):
-        from skillkit.models_catalog import get_default_models
+        from skillengine.models_catalog import get_default_models
 
         models = get_default_models()
         for m in models:

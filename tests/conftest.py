@@ -1,13 +1,13 @@
-"""Shared pytest fixtures for skillkit tests."""
+"""Shared pytest fixtures for skillengine tests."""
 
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
 
-from skillkit import SkillsConfig, SkillsEngine
-from skillkit.filters.base import FilterContext
-from skillkit.models import Skill, SkillMetadata, SkillRequirements, SkillSource
+from skillengine import SkillsConfig, SkillsEngine
+from skillengine.filters.base import FilterContext
+from skillengine.models import Skill, SkillMetadata, SkillRequirements, SkillSource
 
 
 @pytest.fixture

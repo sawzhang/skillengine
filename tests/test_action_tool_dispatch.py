@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from skillkit.agent import AgentConfig, AgentRunner
-from skillkit.engine import SkillsEngine
-from skillkit.models import (
+from skillengine.agent import AgentConfig, AgentRunner
+from skillengine.engine import SkillsEngine
+from skillengine.models import (
     Skill,
     SkillAction,
     SkillActionParam,
@@ -16,9 +16,7 @@ from skillkit.models import (
     SkillSnapshot,
     SkillSource,
 )
-from skillkit.runtime.base import ExecutionResult
-from skillkit.tools import ApplyPatchTool
-from skillkit.tools.edit import EditTool
+from skillengine.runtime.base import ExecutionResult
 
 
 def _make_skill_with_actions(name: str = "pdf", actions: dict | None = None) -> Skill:
@@ -100,52 +98,8 @@ class TestGetToolsGeneratesActionTools:
         runner = _make_runner_with_skills([skill])
         tools = runner.get_tools()
         names = [t["function"]["name"] for t in tools]
-        # 6 builtin (execute, execute_script, write, read, edit, apply_patch) + skill tool
-        assert names == [
-            "execute",
-            "execute_script",
-            "write",
-            "read",
-            "edit",
-            "apply_patch",
-            "skill",
-        ]
-
-    def test_apply_patch_builtin_schema_matches_tool_definition(self):
-        skill = Skill(
-            name="simple",
-            description="Simple skill",
-            content="# Simple",
-            file_path=Path("/tmp/skills/simple/SKILL.md"),
-            base_dir=Path("/tmp/skills/simple"),
-            source=SkillSource.WORKSPACE,
-        )
-        runner = _make_runner_with_skills([skill])
-        tools = runner.get_tools()
-        apply_patch_fn = next(
-            t["function"] for t in tools if t["function"]["name"] == "apply_patch"
-        )
-        expected = ApplyPatchTool().definition()
-
-        assert apply_patch_fn["description"] == expected.description
-        assert apply_patch_fn["parameters"] == expected.parameters
-
-    def test_edit_builtin_schema_matches_tool_definition(self):
-        skill = Skill(
-            name="simple",
-            description="Simple skill",
-            content="# Simple",
-            file_path=Path("/tmp/skills/simple/SKILL.md"),
-            base_dir=Path("/tmp/skills/simple"),
-            source=SkillSource.WORKSPACE,
-        )
-        runner = _make_runner_with_skills([skill])
-        tools = runner.get_tools()
-        edit_fn = next(t["function"] for t in tools if t["function"]["name"] == "edit")
-        expected = EditTool().definition()
-
-        assert edit_fn["description"] == expected.description
-        assert edit_fn["parameters"] == expected.parameters
+        # 4 builtin (execute, execute_script, write, read) + skill tool (on-demand loading)
+        assert names == ["execute", "execute_script", "write", "read", "skill"]
 
     def test_skill_actions_generate_tools(self):
         skill = _make_skill_with_actions()
@@ -154,7 +108,7 @@ class TestGetToolsGeneratesActionTools:
         names = [t["function"]["name"] for t in tools]
         assert "pdf:extract-fields" in names
         assert "pdf:fill-form" in names
-        assert len(tools) == 9  # 6 builtin + skill tool + 2 actions
+        assert len(tools) == 7  # 4 builtin + skill tool + 2 actions
 
     def test_action_tool_schema_correct(self):
         skill = _make_skill_with_actions()
@@ -262,7 +216,7 @@ class TestGetToolsGeneratesActionTools:
         assert "pdf:extract-fields" in names
         assert "pdf:fill-form" in names
         assert "pptx:inventory" in names
-        assert len(tools) == 10  # 6 builtin + skill tool + 2 pdf + 1 pptx
+        assert len(tools) == 8  # 4 builtin + skill tool + 2 pdf + 1 pptx
 
 
 class TestBuildActionArgs:
@@ -438,12 +392,12 @@ class TestEnvContextInjection:
         env_entered = False
 
         class FakeCtx:
-            def __enter__(self):
+            def __enter__(self_ctx):
                 nonlocal env_entered
                 env_entered = True
                 return None
 
-            def __exit__(self, *args):
+            def __exit__(self_ctx, *args):
                 return False
 
         runner.engine.env_context = MagicMock(return_value=FakeCtx())
@@ -465,12 +419,12 @@ class TestEnvContextInjection:
         env_entered = False
 
         class FakeCtx:
-            def __enter__(self):
+            def __enter__(self_ctx):
                 nonlocal env_entered
                 env_entered = True
                 return None
 
-            def __exit__(self, *args):
+            def __exit__(self_ctx, *args):
                 return False
 
         runner.engine.env_context = MagicMock(return_value=FakeCtx())

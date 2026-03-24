@@ -1,4 +1,4 @@
-"""Generate skillkit-execution-flow.drawio using COMPRESSED format (deflate+base64+urlencode).
+"""Generate skillengine-execution-flow.drawio using COMPRESSED format (deflate+base64+urlencode).
 This matches the format used by draw.io's native save, proven to work in test-minimal.drawio.
 Uses numeric IDs to match draw.io conventions.
 """
@@ -70,7 +70,7 @@ def main():
     w('    <mxCell id="1" parent="0"/>')
 
     # === TITLE ===
-    box("SkillKit \u2014 Complete Skill Execution Architecture\nFrom SKILL.md to Tool Execution | Skills First Agent Framework",
+    box("SkillEngine \u2014 Complete Skill Execution Architecture\nFrom SKILL.md to Tool Execution | Skills First Agent Framework",
         "text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;whiteSpace=wrap;",
         300, 20, 1200, 50)
 
@@ -381,9 +381,9 @@ def main():
   <diagram name="Skill Execution Flow" id="exec_flow">{encoded}</diagram>
 </mxfile>
 '''
-    with open("/Users/sawzhang/code/agent-skills-engine/docs/skillkit-execution-flow.drawio", "w") as f:
+    with open("/Users/sawzhang/code/agent-skills-engine/docs/skillengine-execution-flow.drawio", "w") as f:
         f.write(output)
-    print("Done! skillkit-execution-flow.drawio regenerated (compressed format)")
+    print("Done! skillengine-execution-flow.drawio regenerated (compressed format)")
 
 if __name__ == "__main__":
     main()

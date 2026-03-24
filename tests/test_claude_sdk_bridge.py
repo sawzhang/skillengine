@@ -4,8 +4,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from skillkit.a2a.claude_sdk_bridge import ClaudeSDKBridge
-from skillkit.models import Skill, SkillMetadata
+from skillengine.a2a.claude_sdk_bridge import ClaudeSDKBridge
+from skillengine.models import Skill, SkillMetadata
 
 
 def _make_skill(
