@@ -143,6 +143,9 @@ try:
 except ImportError:
     pass
 
+# Harness (multi-agent orchestration)
+from skillengine.harness import HarnessConfig, HarnessReport, HarnessRunner
+
 try:
     from skillengine._version import __version__
 except ImportError:
@@ -267,4 +270,8 @@ __all__ = [
     "MemoryConfig",
     "OpenVikingClient",
     "setup_memory",
+    # Harness (multi-agent orchestration)
+    "HarnessRunner",
+    "HarnessConfig",
+    "HarnessReport",
 ]
