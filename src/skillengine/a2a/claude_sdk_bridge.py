@@ -77,7 +77,7 @@ class ClaudeSDKBridge:
             ImportError: If claude-agent-sdk is not installed.
         """
         try:
-            from claude_agent_sdk import ClaudeAgentOptions, query
+            from claude_agent_sdk import ClaudeAgentOptions, query  # type: ignore[import-not-found]
         except ImportError:
             raise ImportError(
                 "Claude Agent SDK is required. Install with: pip install claude-agent-sdk"

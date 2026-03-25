@@ -30,8 +30,8 @@ class AgentCardSkill:
 
     name: str
     description: str
-    input_schema: dict | None = None
-    output_schema: dict | None = None
+    input_schema: dict[str, Any] | None = None
+    output_schema: dict[str, Any] | None = None
     tags: list[str] = field(default_factory=list)
 
 
@@ -137,7 +137,7 @@ class AgentCard:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict) -> AgentCard:
+    def from_dict(cls, data: dict[str, Any]) -> AgentCard:
         """Deserialize from A2A Agent Card JSON."""
         caps = data.get("capabilities", {})
         skills_data = data.get("skills", [])
@@ -192,7 +192,7 @@ class AgentCard:
         return line
 
 
-def _extract_a2a_config(skill: Skill) -> dict:
+def _extract_a2a_config(skill: Skill) -> dict[str, Any]:
     """Extract a2a configuration from a Skill.
 
     The a2a config can be stored in:

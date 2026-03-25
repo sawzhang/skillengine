@@ -179,7 +179,7 @@ class AgentDiscovery:
         self._health: dict[str, _AgentHealth] = {}  # agent_name → health
         self._endpoint_agents: dict[str, set[str]] = {}  # endpoint → {agent_names}
         self._running = False
-        self._tasks: list[asyncio.Task] = []
+        self._tasks: list[asyncio.Task[Any]] = []
 
     # ── Discovery ────────────────────────────────────────────────
 

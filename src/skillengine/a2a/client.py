@@ -98,7 +98,7 @@ class A2AClient:
         endpoint: str,
         skill_name: str,
         input_text: str,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> A2ATaskResponse:
         """Send a task to a remote A2A agent.
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class TaskStatus(str, Enum):
@@ -24,10 +25,10 @@ class A2ATaskRequest:
     skill_name: str
     input_text: str
     task_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: dict) -> A2ATaskRequest:
+    def from_dict(cls, data: dict[str, Any]) -> A2ATaskRequest:
         return cls(
             skill_name=data["skill_name"],
             input_text=data["input_text"],
@@ -35,7 +36,7 @@ class A2ATaskRequest:
             metadata=data.get("metadata", {}),
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "task_id": self.task_id,
             "skill_name": self.skill_name,
@@ -52,10 +53,10 @@ class A2ATaskResponse:
     status: TaskStatus
     output: str = ""
     error: str | None = None
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: dict) -> A2ATaskResponse:
+    def from_dict(cls, data: dict[str, Any]) -> A2ATaskResponse:
         return cls(
             task_id=data["task_id"],
             status=TaskStatus(data["status"]),
@@ -64,7 +65,7 @@ class A2ATaskResponse:
             metadata=data.get("metadata", {}),
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = {
             "task_id": self.task_id,
             "status": self.status.value,

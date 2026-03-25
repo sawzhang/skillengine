@@ -86,8 +86,8 @@ class A2AServer:
             ImportError: If fastapi is not installed.
         """
         try:
-            from fastapi import FastAPI, HTTPException
-            from fastapi.responses import JSONResponse
+            from fastapi import FastAPI, HTTPException  # type: ignore[import-not-found]
+            from fastapi.responses import JSONResponse  # type: ignore[import-not-found]
         except ImportError:
             raise ImportError(
                 "FastAPI is required for A2A server. Install with: pip install fastapi uvicorn"
@@ -124,7 +124,7 @@ class A2AServer:
             )
 
         @app.post("/tasks")
-        async def create_task(request: dict) -> JSONResponse:
+        async def create_task(request: dict[str, Any]) -> JSONResponse:
             """Create and execute an A2A task."""
             try:
                 task_req = A2ATaskRequest.from_dict(request)
@@ -217,7 +217,7 @@ class A2AServer:
             )
 
         @app.get("/health")
-        async def health() -> dict:
+        async def health() -> dict[str, Any]:
             return {
                 "status": "ok",
                 "agents": self.registry.count,
@@ -248,7 +248,7 @@ class A2AServer:
             port: Listen port.
         """
         try:
-            import uvicorn
+            import uvicorn  # type: ignore[import-not-found]
         except ImportError:
             raise ImportError("uvicorn is required. Install with: pip install uvicorn")
 

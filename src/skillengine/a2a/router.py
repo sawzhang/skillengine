@@ -401,7 +401,7 @@ class PerformanceRouter:
                 }
             )
 
-        candidates.sort(key=lambda c: c["total_score"], reverse=True)
+        candidates.sort(key=lambda c: float(c["total_score"]), reverse=True)  # type: ignore[arg-type]
 
         return {
             "query": query,
