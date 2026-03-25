@@ -582,7 +582,9 @@ def _prompts_list() -> None:
 
     if not templates:
         console.print("[dim]No prompt templates found.[/dim]")
-        console.print("[dim]Place .md files in ~/.skillengine/prompts/ or ./.skillengine/prompts/[/dim]")
+        console.print(
+            "[dim]Place .md files in ~/.skillengine/prompts/ or ./.skillengine/prompts/[/dim]"
+        )
         return
 
     table = Table(title="Prompt Templates")

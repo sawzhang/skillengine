@@ -167,7 +167,9 @@ class PerformanceRouter:
         breakdown: dict[str, float] = {}
 
         # 1. Keyword relevance
-        breakdown["keyword"] = self._keyword_score(agent, query_lower, query_terms) * cfg.keyword_weight
+        breakdown["keyword"] = (
+            self._keyword_score(agent, query_lower, query_terms) * cfg.keyword_weight
+        )
 
         # 2. Performance (success rate + latency)
         breakdown["performance"] = self._performance_score(agent.stats) * cfg.performance_weight

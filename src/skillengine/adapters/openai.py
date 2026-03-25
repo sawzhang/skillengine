@@ -13,7 +13,8 @@ try:
     from openai import AsyncOpenAI  # type: ignore[import-not-found]
 except ImportError:
     raise ImportError(
-        "OpenAI adapter requires the 'openai' package. Install with: pip install skillengine[openai]"
+        "OpenAI adapter requires the 'openai' package. "
+        "Install with: pip install skillengine[openai]"
     )
 
 from skillengine.adapters.base import AgentResponse, LLMAdapter, Message

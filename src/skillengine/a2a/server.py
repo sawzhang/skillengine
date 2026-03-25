@@ -14,7 +14,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -22,7 +21,7 @@ from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
 from skillengine.a2a.registry import AgentRegistry
 
 if TYPE_CHECKING:
-    from skillengine.agent import AgentConfig, AgentRunner
+    from skillengine.agent import AgentConfig
     from skillengine.engine import SkillsEngine
 
 logger = logging.getLogger(__name__)

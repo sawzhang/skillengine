@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from skillengine.a2a.agent_card import AgentCard
 from skillengine.a2a.client import A2AClient
-from skillengine.a2a.registry import AgentRegistry, AgentSource, RegisteredAgent
+from skillengine.a2a.registry import AgentRegistry
 
 if TYPE_CHECKING:
     from skillengine.events import EventBus

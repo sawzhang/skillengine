@@ -15,7 +15,7 @@ from typing import Any
 import httpx
 
 from skillengine.a2a.agent_card import AgentCard
-from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
+from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse
 from skillengine.a2a.registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
