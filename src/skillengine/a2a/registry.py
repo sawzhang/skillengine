@@ -266,7 +266,7 @@ class AgentRegistry:
             if not overlap:
                 continue
 
-            score = len(overlap)
+            score: float = len(overlap)
 
             # Bonus for name match
             if agent.card.name.lower() in query.lower():

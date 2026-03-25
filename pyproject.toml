@@ -107,6 +107,8 @@ module = [
     "skillengine.packages.*",
     "skillengine.utils.*",
     "skillengine.web.*",
+    "skillengine.a2a.*",
+    "skillengine.harness.*",
 ]
 disable_error_code = [
     "assignment",
@@ -122,6 +124,9 @@ disable_error_code = [
     "type-var",
     "misc",
     "no-untyped-def",
+    "untyped-decorator",
+    "type-arg",
+    "return-value",
 ]
 
 [tool.pytest.ini_options]

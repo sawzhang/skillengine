@@ -349,7 +349,7 @@ class HarnessRunner:
                     if t.get("function", {}).get("name", "") in allowed
                 ]
 
-            agent.get_tools = filtered_tools  # type: ignore[assignment]
+            agent.get_tools = filtered_tools  # type: ignore[method-assign]
 
         return agent
 
