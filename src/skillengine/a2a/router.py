@@ -301,7 +301,7 @@ class PerformanceRouter:
 
         # Trim history
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
     def _simplify_query(self, query: str) -> str:
         """Reduce query to a simplified pattern for history matching.
@@ -309,9 +309,7 @@ class PerformanceRouter:
         Strips specifics, keeps intent keywords.
         """
         # Simple approach: keep only words > 3 chars, lowercase, sorted
-        words = sorted(set(
-            w.lower() for w in query.split() if len(w) > 3
-        ))
+        words = sorted(set(w.lower() for w in query.split() if len(w) > 3))
         return " ".join(words[:10])
 
     # ── Fallback execution ───────────────────────────────────────
@@ -369,8 +367,7 @@ class PerformanceRouter:
                     break
 
         raise RuntimeError(
-            f"All {len(candidates)} agents failed for query: {query!r}. "
-            f"Last error: {last_error}"
+            f"All {len(candidates)} agents failed for query: {query!r}. Last error: {last_error}"
         )
 
     # ── Diagnostics ──────────────────────────────────────────────
@@ -390,17 +387,19 @@ class PerformanceRouter:
         for agent in self.registry.all():
             breakdown = self._score_agent(agent, query_lower, query_terms)
             total = sum(breakdown.values())
-            candidates.append({
-                "name": agent.card.name,
-                "source": agent.source.value,
-                "total_score": round(total, 4),
-                "breakdown": {k: round(v, 4) for k, v in breakdown.items()},
-                "stats": {
-                    "calls": agent.stats.total_calls,
-                    "success_rate": round(agent.stats.success_rate, 2),
-                    "avg_latency_ms": round(agent.stats.avg_latency_ms, 1),
-                },
-            })
+            candidates.append(
+                {
+                    "name": agent.card.name,
+                    "source": agent.source.value,
+                    "total_score": round(total, 4),
+                    "breakdown": {k: round(v, 4) for k, v in breakdown.items()},
+                    "stats": {
+                        "calls": agent.stats.total_calls,
+                        "success_rate": round(agent.stats.success_rate, 2),
+                        "avg_latency_ms": round(agent.stats.avg_latency_ms, 1),
+                    },
+                }
+            )
 
         candidates.sort(key=lambda c: c["total_score"], reverse=True)
 

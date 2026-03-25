@@ -80,8 +80,7 @@ class ClaudeSDKBridge:
             from claude_agent_sdk import ClaudeAgentOptions, query
         except ImportError:
             raise ImportError(
-                "Claude Agent SDK is required. "
-                "Install with: pip install claude-agent-sdk"
+                "Claude Agent SDK is required. Install with: pip install claude-agent-sdk"
             )
 
         skill = self._get_skill(skill_name)
@@ -204,16 +203,19 @@ class ClaudeSDKBridge:
 
         # Extract input schema from a2a config if available
         a2a = getattr(skill, "_a2a_config", {})
-        input_schema = a2a.get("input_schema", {
-            "type": "object",
-            "properties": {
-                "input": {
-                    "type": "string",
-                    "description": "Task input or query",
+        input_schema = a2a.get(
+            "input_schema",
+            {
+                "type": "object",
+                "properties": {
+                    "input": {
+                        "type": "string",
+                        "description": "Task input or query",
+                    },
                 },
+                "required": ["input"],
             },
-            "required": ["input"],
-        })
+        )
 
         return {
             "name": skill.name,
@@ -226,7 +228,5 @@ class ClaudeSDKBridge:
         skill = self.engine.get_skill(skill_name)
         if skill is None:
             available = [s.name for s in self.engine.load_skills()]
-            raise ValueError(
-                f"Skill '{skill_name}' not found. Available: {available}"
-            )
+            raise ValueError(f"Skill '{skill_name}' not found. Available: {available}")
         return skill

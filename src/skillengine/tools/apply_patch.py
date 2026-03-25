@@ -12,6 +12,7 @@ from skillengine.tools.registry import BaseTool
 
 logger = get_logger("tools.apply_patch")
 
+
 @dataclass
 class _ApplyPatchOperation:
     kind: str  # create_file | update_file | delete_file
@@ -43,11 +44,11 @@ class ApplyPatchTool(BaseTool):
             "For update_file, a diff with only '+' lines inserts content at the top of the file; "
             "to update existing content, include context using ' ' or '-' lines. "
             "Example (top insert): original='b\\nc\\n', "
-            "call={\"type\":\"update_file\",\"path\":\"notes.txt\",\"diff\":\"+a\"}, "
+            'call={"type":"update_file","path":"notes.txt","diff":"+a"}, '
             "result='a\\nb\\nc\\n'. "
             "Example (targeted update): original='line1\\nline2\\n', "
-            "call={\"type\":\"update_file\",\"path\":\"notes.txt\","
-            "\"diff\":\" line1\\n-line2\\n+line two\"}, "
+            'call={"type":"update_file","path":"notes.txt",'
+            '"diff":" line1\\n-line2\\n+line two"}, '
             "result='line1\\nline two\\n'."
         )
 
@@ -153,9 +154,7 @@ class ApplyPatchTool(BaseTool):
         workspace = Path(self.cwd).resolve()
         candidate = Path(raw_path)
         resolved = (
-            candidate.resolve()
-            if candidate.is_absolute()
-            else (workspace / candidate).resolve()
+            candidate.resolve() if candidate.is_absolute() else (workspace / candidate).resolve()
         )
 
         if self.enforce_workspace_boundary:

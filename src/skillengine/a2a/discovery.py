@@ -396,12 +396,8 @@ class AgentDiscovery:
 
         # Start periodic tasks
         if self.config.endpoints:
-            self._tasks.append(
-                asyncio.create_task(self._discovery_loop(), name="a2a-discovery")
-            )
-            self._tasks.append(
-                asyncio.create_task(self._health_check_loop(), name="a2a-health")
-            )
+            self._tasks.append(asyncio.create_task(self._discovery_loop(), name="a2a-discovery"))
+            self._tasks.append(asyncio.create_task(self._health_check_loop(), name="a2a-health"))
 
         logger.info(
             "Agent discovery started: %d endpoints, refresh=%ds, health=%ds",

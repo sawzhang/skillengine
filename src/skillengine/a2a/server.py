@@ -90,8 +90,7 @@ class A2AServer:
             from fastapi.responses import JSONResponse
         except ImportError:
             raise ImportError(
-                "FastAPI is required for A2A server. "
-                "Install with: pip install fastapi uvicorn"
+                "FastAPI is required for A2A server. Install with: pip install fastapi uvicorn"
             )
 
         app = FastAPI(
@@ -137,8 +136,7 @@ class A2AServer:
                 available = [a.card.name for a in self.registry.local_agents()]
                 raise HTTPException(
                     404,
-                    f"Agent '{task_req.skill_name}' not found. "
-                    f"Available: {available}",
+                    f"Agent '{task_req.skill_name}' not found. Available: {available}",
                 )
 
             # Create task record

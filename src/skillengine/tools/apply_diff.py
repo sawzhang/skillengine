@@ -100,7 +100,7 @@ def _read_str(state: ParserState, prefix: str) -> str:
     current = state.lines[state.index]
     if current.startswith(prefix):
         state.index += 1
-        return current[len(prefix):]
+        return current[len(prefix) :]
     return ""
 
 
@@ -332,7 +332,7 @@ def _apply_chunks(input_text: str, chunks: list[Chunk], newline: str) -> str:
                 f"apply_diff: overlapping chunk at {chunk.orig_index} (cursor {cursor})"
             )
 
-        dest_lines.extend(orig_lines[cursor:chunk.orig_index])
+        dest_lines.extend(orig_lines[cursor : chunk.orig_index])
         cursor = chunk.orig_index
 
         if chunk.ins_lines:
