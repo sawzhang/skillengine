@@ -59,7 +59,7 @@ class A2AClient:
             KeyError: If the response is malformed.
         """
         url = f"{endpoint.rstrip('/')}/.well-known/agent.json"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             data = resp.json()
@@ -83,7 +83,7 @@ class A2AClient:
             List of AgentCards.
         """
         url = f"{endpoint.rstrip('/')}/.well-known/agent.json"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             data = resp.json()
@@ -119,7 +119,7 @@ class A2AClient:
         )
 
         start_time = time.time()
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             resp = await client.post(url, json=request.to_dict())
             resp.raise_for_status()
 
@@ -151,7 +151,7 @@ class A2AClient:
             Current task status and output.
         """
         url = f"{endpoint.rstrip('/')}/tasks/{task_id}"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             resp = await client.get(url)
             resp.raise_for_status()
 
@@ -172,7 +172,7 @@ class A2AClient:
             Updated task status.
         """
         url = f"{endpoint.rstrip('/')}/tasks/{task_id}/cancel"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             resp = await client.post(url)
             resp.raise_for_status()
 

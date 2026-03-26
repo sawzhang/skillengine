@@ -2000,11 +2000,13 @@ websockets = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fastapi" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
     { name = "types-pyyaml" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -2035,11 +2037,13 @@ provides-extras = ["a2a-server", "anthropic", "claude-sdk", "memory", "openai", 
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fastapi", specifier = ">=0.135.2" },
     { name = "mypy", specifier = ">=1.8" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.23" },
     { name = "ruff", specifier = ">=0.1" },
     { name = "types-pyyaml", specifier = ">=6.0" },
+    { name = "uvicorn", specifier = ">=0.41.0" },
 ]
 
 [[package]]

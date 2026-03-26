@@ -18,6 +18,7 @@ from skillengine.a2a.discovery import (
 )
 from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
 from skillengine.a2a.registry import AgentRegistry, AgentSource, AgentStats, RegisteredAgent
+from skillengine.a2a.coordinator import CoordinatorAgent, CoordinatorConfig
 from skillengine.a2a.router import PerformanceRouter, RouteResult, RoutingConfig
 
 __all__ = [
@@ -49,4 +50,7 @@ __all__ = [
     "PerformanceRouter",
     "RoutingConfig",
     "RouteResult",
+    # Coordinator
+    "CoordinatorAgent",
+    "CoordinatorConfig",
 ]

@@ -51,6 +51,8 @@ dev = [
     "ruff>=0.1",
     "mypy>=1.8",
     "types-PyYAML>=6.0",
+    "fastapi>=0.135.2",
+    "uvicorn>=0.41.0",
 ]
 
 [project.urls]
