@@ -146,6 +146,9 @@ except ImportError:
 # Harness (multi-agent orchestration)
 from skillengine.harness import HarnessConfig, HarnessReport, HarnessRunner
 
+# Optimizer (self-improving skill loop)
+from skillengine.optimizer import OptimizationReport, OptimizerConfig, SkillOptimizer
+
 try:
     from skillengine._version import __version__
 except ImportError:
@@ -274,4 +277,8 @@ __all__ = [
     "HarnessRunner",
     "HarnessConfig",
     "HarnessReport",
+    # Optimizer (self-improving skill loop)
+    "SkillOptimizer",
+    "OptimizerConfig",
+    "OptimizationReport",
 ]
