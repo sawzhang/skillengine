@@ -126,6 +126,7 @@ class AgentConfig:
     model: str = "MiniMax-M2.1"
     base_url: str | None = None  # Defaults to OPENAI_BASE_URL
     api_key: str | None = None  # Defaults to OPENAI_API_KEY
+    oauth_token: str | None = None  # Claude.ai OAuth token (CLAUDE_CODE_OAUTH_TOKEN)
     temperature: float = 1.0
     max_tokens: int = 4096
 
@@ -163,6 +164,7 @@ class AgentConfig:
         return cls(
             base_url=os.environ.get("OPENAI_BASE_URL"),
             api_key=os.environ.get("OPENAI_API_KEY"),
+            oauth_token=os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"),
             model=os.environ.get("MINIMAX_MODEL", "MiniMax-M2.1"),
             cache_retention=cache_ret if cache_ret in ("none", "short", "long") else "short",
             **overrides,

@@ -182,6 +182,20 @@ def main() -> None:
         "prompt_text", nargs="?", default=None, help="Prompt text (for json mode)"
     )
 
+    # Auth command
+    auth_parser = subparsers.add_parser("auth", help="Authentication management")
+    auth_subparsers = auth_parser.add_subparsers(dest="auth_command", help="Auth commands")
+    setup_token_parser = auth_subparsers.add_parser(
+        "setup-token",
+        help="Set up a long-lived OAuth token for Claude.ai (1-year, requires subscription)",
+    )
+    setup_token_parser.add_argument(
+        "--manual",
+        action="store_true",
+        help="Use manual copy-paste flow instead of browser redirect",
+    )
+    auth_subparsers.add_parser("status", help="Show current authentication status")
+
     # Serve command (web UI)
     serve_parser = subparsers.add_parser("serve", help="Start the web UI server")
     serve_parser.add_argument("-d", "--dir", action="append", dest="dirs", help="Skill directories")
@@ -216,6 +230,8 @@ def main() -> None:
         cmd_prompts(args)
     elif args.command == "commands":
         cmd_commands(args)
+    elif args.command == "auth":
+        cmd_auth(args)
     elif args.command == "chat":
         asyncio.run(cmd_chat(args))
     elif args.command == "serve":
@@ -668,6 +684,30 @@ def cmd_commands(args: argparse.Namespace) -> None:
     console.print(f"\n[dim]Total: {len(commands)} commands[/dim]")
 
 
+def cmd_auth(args: argparse.Namespace) -> None:
+    """Authentication management commands."""
+    if args.auth_command == "setup-token":
+        from skillengine.auth.oauth import run_setup_token_flow
+
+        run_setup_token_flow(manual=args.manual)
+    elif args.auth_command == "status":
+        import os
+
+        token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if token:
+            console.print("[green]✓ Authenticated via CLAUDE_CODE_OAUTH_TOKEN[/green]")
+            console.print(f"  Token: {token[:8]}...{token[-4:]}")
+        elif api_key:
+            console.print("[green]✓ Authenticated via ANTHROPIC_API_KEY[/green]")
+            console.print(f"  Key: {api_key[:8]}...{api_key[-4:]}")
+        else:
+            console.print("[yellow]Not authenticated.[/yellow]")
+            console.print("Run [cyan]skills auth setup-token[/cyan] to authenticate.")
+    else:
+        console.print("[yellow]Usage: skills auth <setup-token|status>[/yellow]")
+
+
 async def cmd_chat(args: argparse.Namespace) -> None:
     """Start interactive chat or run in a specific mode."""
     from skillengine.agent import AgentConfig, AgentRunner
@@ -679,6 +719,19 @@ async def cmd_chat(args: argparse.Namespace) -> None:
 
     agent_config = AgentConfig.from_env(**config_kwargs)
     agent = AgentRunner(engine, agent_config)
+
+    if agent_config.oauth_token:
+        from skillengine.adapters.anthropic import AnthropicAdapter
+
+        agent.adapter_registry.register_factory(
+            "anthropic",
+            lambda eng: AnthropicAdapter(
+                eng,
+                auth_token=agent_config.oauth_token,
+                model=agent_config.model,
+            ),
+        )
+        agent.set_adapter("anthropic")
 
     mode = args.mode
     if mode == "json":

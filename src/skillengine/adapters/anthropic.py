@@ -77,9 +77,18 @@ class AnthropicAdapter(LLMAdapter):
         model: str = "claude-3-5-sonnet-20241022",
         max_tokens: int = 4096,
         enable_tools: bool = True,
+        auth_token: str | None = None,
     ) -> None:
         super().__init__(engine)
-        self.client = client or AsyncAnthropic()
+        if client is not None:
+            self.client = client
+        elif auth_token:
+            self.client = AsyncAnthropic(
+                auth_token=auth_token,
+                default_headers={"anthropic-beta": "oauth-2025-04-20"},
+            )
+        else:
+            self.client = AsyncAnthropic()
         self.model = model
         self.max_tokens = max_tokens
         self.enable_tools = enable_tools
