@@ -169,7 +169,6 @@ def create_app(agent: Any = None, storage: SessionStorage | None = None) -> Star
 
     app = Starlette(
         routes=routes,
-        on_startup=[],
     )
 
     # Register WebSocket separately

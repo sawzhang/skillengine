@@ -7,6 +7,7 @@ Skills are the single source of truth — Agent Cards are derived automatically.
 
 from skillengine.a2a.agent_card import AgentCapabilities, AgentCard, AgentCardSkill
 from skillengine.a2a.client import A2AClient, create_remote_agent_tool
+from skillengine.a2a.coordinator import CoordinatorAgent, CoordinatorConfig
 from skillengine.a2a.discovery import (
     AGENT_DISCOVERED,
     AGENT_HEALTH_CHANGED,
@@ -18,7 +19,6 @@ from skillengine.a2a.discovery import (
 )
 from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
 from skillengine.a2a.registry import AgentRegistry, AgentSource, AgentStats, RegisteredAgent
-from skillengine.a2a.coordinator import CoordinatorAgent, CoordinatorConfig
 from skillengine.a2a.router import PerformanceRouter, RouteResult, RoutingConfig
 
 __all__ = [
