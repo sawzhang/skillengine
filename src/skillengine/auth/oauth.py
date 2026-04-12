@@ -37,6 +37,7 @@ EXPIRES_IN = 365 * 24 * 60 * 60  # 1 year in seconds
 # PKCE helpers (RFC 7636)
 # ---------------------------------------------------------------------------
 
+
 def _base64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
@@ -57,6 +58,7 @@ def generate_state() -> str:
 # ---------------------------------------------------------------------------
 # Localhost callback server
 # ---------------------------------------------------------------------------
+
 
 class _CallbackHandler(BaseHTTPRequestHandler):
     server: _CallbackServer
@@ -105,15 +107,14 @@ class _CallbackServer(HTTPServer):
 # Auth URL builder
 # ---------------------------------------------------------------------------
 
+
 def build_auth_url(
     code_challenge: str,
     state: str,
     port: int = 0,
     manual: bool = False,
 ) -> str:
-    redirect_uri = (
-        MANUAL_REDIRECT_URL if manual else f"http://localhost:{port}/callback"
-    )
+    redirect_uri = MANUAL_REDIRECT_URL if manual else f"http://localhost:{port}/callback"
     params = {
         "code": "true",
         "client_id": CLIENT_ID,
@@ -131,16 +132,15 @@ def build_auth_url(
 # Token exchange
 # ---------------------------------------------------------------------------
 
+
 def exchange_code_for_token(
     code: str,
     code_verifier: str,
     state: str,
     port: int = 0,
     manual: bool = False,
-) -> dict:
-    redirect_uri = (
-        MANUAL_REDIRECT_URL if manual else f"http://localhost:{port}/callback"
-    )
+) -> dict[str, str]:
+    redirect_uri = MANUAL_REDIRECT_URL if manual else f"http://localhost:{port}/callback"
     body = {
         "grant_type": "authorization_code",
         "code": code,
@@ -152,10 +152,17 @@ def exchange_code_for_token(
     }
     result = subprocess.run(
         [
-            "curl", "-s", "-X", "POST", TOKEN_URL,
-            "-H", "Content-Type: application/json",
-            "-d", json.dumps(body),
-            "--max-time", "15",
+            "curl",
+            "-s",
+            "-X",
+            "POST",
+            TOKEN_URL,
+            "-H",
+            "Content-Type: application/json",
+            "-d",
+            json.dumps(body),
+            "--max-time",
+            "15",
         ],
         capture_output=True,
         text=True,
@@ -171,6 +178,7 @@ def exchange_code_for_token(
 # ---------------------------------------------------------------------------
 # Main flow
 # ---------------------------------------------------------------------------
+
 
 def run_setup_token_flow(manual: bool = False) -> str:
     """Run the OAuth setup-token flow and return the access token.
@@ -207,7 +215,7 @@ def run_setup_token_flow(manual: bool = False) -> str:
             server.shutdown()
             raise TimeoutError("Authorization timed out after 120 seconds.")
 
-        code = server.auth_code
+        code = server.auth_code  # type: ignore[assignment]
         server.shutdown()
 
         if not code:

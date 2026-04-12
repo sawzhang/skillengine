@@ -177,8 +177,7 @@ class CoordinatorAgent:
         """
         if self.registry.count == 0:
             raise ValueError(
-                "No downstream agents registered. "
-                "Call connect() or POST /agents/connect first."
+                "No downstream agents registered. Call connect() or POST /agents/connect first."
             )
 
         # --- Step 1: Select agent ---
@@ -198,8 +197,7 @@ class CoordinatorAgent:
             if route_result is None:
                 available = [a.card.name for a in self.registry.all()]
                 raise ValueError(
-                    f"No agent matches query {task_req.input_text!r}. "
-                    f"Available agents: {available}"
+                    f"No agent matches query {task_req.input_text!r}. Available agents: {available}"
                 )
             agent = route_result.agent
             logger.info(
@@ -236,9 +234,7 @@ class CoordinatorAgent:
         except Exception as e:
             latency_ms = (time.time() - start_time) * 1000
             self.router.record_outcome(task_req.input_text, agent.card.name, False, latency_ms)
-            raise RuntimeError(
-                f"Downstream agent {agent.card.name!r} failed: {e}"
-            ) from e
+            raise RuntimeError(f"Downstream agent {agent.card.name!r} failed: {e}") from e
 
     # ── Agent Card ────────────────────────────────────────────────────────
 
@@ -311,9 +307,7 @@ class CoordinatorAgent:
             from fastapi import FastAPI, HTTPException  # type: ignore[import-not-found]
             from fastapi.responses import JSONResponse  # type: ignore[import-not-found]
         except ImportError:
-            raise ImportError(
-                "FastAPI is required. Install with: pip install fastapi uvicorn"
-            )
+            raise ImportError("FastAPI is required. Install with: pip install fastapi uvicorn")
 
         app = FastAPI(
             title=f"{self.config.name} — A2A Coordinator",
@@ -424,14 +418,16 @@ class CoordinatorAgent:
             """Health check with agent and task stats."""
             agents_info = []
             for agent in self.registry.all():
-                agents_info.append({
-                    "name": agent.card.name,
-                    "source": agent.source.value,
-                    "endpoint": agent.endpoint,
-                    "calls": agent.stats.total_calls,
-                    "success_rate": round(agent.stats.success_rate, 2),
-                    "avg_latency_ms": round(agent.stats.avg_latency_ms, 1),
-                })
+                agents_info.append(
+                    {
+                        "name": agent.card.name,
+                        "source": agent.source.value,
+                        "endpoint": agent.endpoint,
+                        "calls": agent.stats.total_calls,
+                        "success_rate": round(agent.stats.success_rate, 2),
+                        "avg_latency_ms": round(agent.stats.avg_latency_ms, 1),
+                    }
+                )
 
             task_counts = {s.value: 0 for s in TaskStatus}
             for t in self._tasks.values():
@@ -452,20 +448,22 @@ class CoordinatorAgent:
             """List all connected downstream agents with their cards."""
             agents = []
             for agent in self.registry.all():
-                agents.append({
-                    "name": agent.card.name,
-                    "description": agent.card.description,
-                    "source": agent.source.value,
-                    "endpoint": agent.endpoint,
-                    "tags": agent.card.tags,
-                    "version": agent.card.version,
-                    "stats": {
-                        "calls": agent.stats.total_calls,
-                        "success_rate": round(agent.stats.success_rate, 2),
-                        "avg_latency_ms": round(agent.stats.avg_latency_ms, 1),
-                        "last_error": agent.stats.last_error,
-                    },
-                })
+                agents.append(
+                    {
+                        "name": agent.card.name,
+                        "description": agent.card.description,
+                        "source": agent.source.value,
+                        "endpoint": agent.endpoint,
+                        "tags": agent.card.tags,
+                        "version": agent.card.version,
+                        "stats": {
+                            "calls": agent.stats.total_calls,
+                            "success_rate": round(agent.stats.success_rate, 2),
+                            "avg_latency_ms": round(agent.stats.avg_latency_ms, 1),
+                            "last_error": agent.stats.last_error,
+                        },
+                    }
+                )
             return JSONResponse(content={"agents": agents, "count": len(agents)})
 
         @app.post("/agents/connect")
@@ -480,9 +478,7 @@ class CoordinatorAgent:
 
             try:
                 names = await self.connect(str(endpoint))
-                return JSONResponse(
-                    content={"connected": names, "endpoint": endpoint}
-                )
+                return JSONResponse(content={"connected": names, "endpoint": endpoint})
             except Exception as e:
                 raise HTTPException(502, f"Failed to connect to {endpoint}: {e}")
 
