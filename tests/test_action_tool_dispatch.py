@@ -370,7 +370,8 @@ class TestExecuteToolActionDispatch:
             "arguments": "{}",
             "id": "call_4",
         })
-        assert "Unknown tool" in result
+        assert "Error" in result
+        assert "not found" in result
 
     @pytest.mark.asyncio
     async def test_unknown_skill_falls_through(self):
@@ -381,7 +382,8 @@ class TestExecuteToolActionDispatch:
             "arguments": "{}",
             "id": "call_5",
         })
-        assert "Unknown tool" in result
+        assert "Error" in result
+        assert "not found" in result
 
 
 class TestEnvContextInjection:

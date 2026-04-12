@@ -25,7 +25,9 @@ from dotenv import load_dotenv
 from skillengine.adapters.registry import AdapterRegistry
 from skillengine.config import SkillsConfig
 from skillengine.context import ContextManager, estimate_messages_tokens
+from skillengine.definition import AgentDefinition, RuntimeConfig
 from skillengine.engine import SkillsEngine
+from skillengine.environment import Environment
 from skillengine.events import (
     AFTER_TOOL_RESULT,
     AGENT_END,
@@ -52,6 +54,7 @@ from skillengine.events import (
     TurnEndEvent,
     TurnStartEvent,
 )
+from skillengine.harness_state import HarnessState
 from skillengine.logging import get_logger
 from skillengine.model_registry import (
     ModelDefinition,
@@ -66,8 +69,9 @@ from skillengine.models import (
     SkillSnapshot,
     TextContent,
 )
-from skillengine.tools.apply_patch import ApplyPatchTool
-from skillengine.tools.edit import EditTool
+from skillengine.tools.action_handler import SkillActionHandler
+from skillengine.tools.dispatcher import ToolContext, ToolDispatcher
+from skillengine.tools.skill_handler import SkillToolHandler
 
 # Auto-load .env file from current directory or parent directories
 load_dotenv(override=True)
@@ -170,6 +174,65 @@ class AgentConfig:
             **overrides,
         )
 
+    def to_definition(self) -> AgentDefinition:
+        """Extract the immutable agent definition."""
+        return AgentDefinition(
+            model=self.model,
+            system_prompt=self.system_prompt,
+            skill_dirs=tuple(self.skill_dirs),
+            enable_tools=self.enable_tools,
+            enable_reasoning=self.enable_reasoning,
+            load_context_files=self.load_context_files,
+            skill_description_budget=self.skill_description_budget,
+        )
+
+    def to_runtime_config(self) -> RuntimeConfig:
+        """Extract the mutable runtime config."""
+        return RuntimeConfig(
+            base_url=self.base_url,
+            api_key=self.api_key,
+            oauth_token=self.oauth_token,
+            max_turns=self.max_turns,
+            auto_execute=self.auto_execute,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            thinking_level=self.thinking_level,
+            transport=self.transport,
+            cache_retention=self.cache_retention,
+            session_id=self.session_id,
+            watch_skills=self.watch_skills,
+        )
+
+    @classmethod
+    def from_parts(
+        cls,
+        definition: AgentDefinition,
+        runtime: RuntimeConfig | None = None,
+    ) -> AgentConfig:
+        """Reconstruct AgentConfig from definition + runtime config."""
+        rt = runtime or RuntimeConfig()
+        return cls(
+            model=definition.model,
+            system_prompt=definition.system_prompt,
+            skill_dirs=list(definition.skill_dirs),
+            enable_tools=definition.enable_tools,
+            enable_reasoning=definition.enable_reasoning,
+            load_context_files=definition.load_context_files,
+            skill_description_budget=definition.skill_description_budget,
+            base_url=rt.base_url,
+            api_key=rt.api_key,
+            oauth_token=rt.oauth_token,
+            max_turns=rt.max_turns,
+            auto_execute=rt.auto_execute,
+            temperature=rt.temperature,
+            max_tokens=rt.max_tokens,
+            thinking_level=rt.thinking_level,
+            transport=rt.transport,
+            cache_retention=rt.cache_retention,
+            session_id=rt.session_id,
+            watch_skills=rt.watch_skills,
+        )
+
 
 class AgentRunner:
     """
@@ -204,23 +267,120 @@ class AgentRunner:
         self.events = events or EventBus()
         self.model_registry = model_registry
         self.context_manager = context_manager
-        self.adapter_registry = adapter_registry or AdapterRegistry()
-        self._active_adapter_name: str | None = None
-        self._client: Any = None
-        self._conversation: list[AgentMessage] = []
-        self._cumulative_usage = TokenUsage()
-        self._on_skill_change: list[Callable[[set[Path]], None]] = []
-        self._context_files: list[Any] = []  # Loaded ContextFile objects
+        if adapter_registry is not None:
+            self.adapter_registry = adapter_registry
+        else:
+            self.adapter_registry = AdapterRegistry()
         self._session_manager: Any = None  # SessionManager (lazy init)
 
-        # Abort / steering / follow-up
-        self._abort_event = asyncio.Event()
-        self._steering_queue: asyncio.Queue[str] = asyncio.Queue()
-        self._followup_queue: asyncio.Queue[str] = asyncio.Queue()
+        # Consolidated mutable state (Managed Agents pattern)
+        self._state = HarnessState(
+            active_model=self.config.model,
+            thinking_level=(
+                self.config.thinking_level
+                if self.config.thinking_level
+                else "off"
+            ),
+        )
+
+        # Unified tool dispatcher (Managed Agents pattern)
+        self._dispatcher = ToolDispatcher()
+        self._dispatcher.register_builtins(self.engine)
+        self._skill_handler = SkillToolHandler(self)
+        self._action_handler = SkillActionHandler(self)
+        self._dispatcher.register_pattern_handler(self._action_handler)
 
         # Load context files if configured
         if self.config.load_context_files:
             self._load_context_files()
+
+    # ------------------------------------------------------------------
+    # Property delegates to HarnessState (backward compatibility)
+    # ------------------------------------------------------------------
+
+    @property
+    def _conversation(self) -> list[AgentMessage]:
+        return self._state.conversation
+
+    @_conversation.setter
+    def _conversation(self, value: list[AgentMessage]) -> None:
+        self._state.conversation = value
+
+    @property
+    def _cumulative_usage(self) -> TokenUsage:
+        return self._state.cumulative_usage
+
+    @_cumulative_usage.setter
+    def _cumulative_usage(self, value: TokenUsage) -> None:
+        self._state.cumulative_usage = value
+
+    @property
+    def _active_adapter_name(self) -> str | None:
+        return self._state.active_adapter_name
+
+    @_active_adapter_name.setter
+    def _active_adapter_name(self, value: str | None) -> None:
+        self._state.active_adapter_name = value
+
+    @property
+    def _abort_event(self) -> asyncio.Event:
+        return self._state.abort_event
+
+    @_abort_event.setter
+    def _abort_event(self, value: asyncio.Event) -> None:
+        self._state.abort_event = value
+
+    @property
+    def _steering_queue(self) -> asyncio.Queue[str]:
+        return self._state.steering_queue
+
+    @_steering_queue.setter
+    def _steering_queue(self, value: asyncio.Queue[str]) -> None:
+        self._state.steering_queue = value
+
+    @property
+    def _followup_queue(self) -> asyncio.Queue[str]:
+        return self._state.followup_queue
+
+    @_followup_queue.setter
+    def _followup_queue(self, value: asyncio.Queue[str]) -> None:
+        self._state.followup_queue = value
+
+    @property
+    def _on_skill_change(self) -> list[Callable]:
+        return self._state.on_skill_change
+
+    @_on_skill_change.setter
+    def _on_skill_change(self, value: list[Callable]) -> None:
+        self._state.on_skill_change = value
+
+    @property
+    def _context_files(self) -> list[Any]:
+        return self._state.context_files
+
+    @_context_files.setter
+    def _context_files(self, value: list[Any]) -> None:
+        self._state.context_files = value
+
+    @property
+    def _client(self) -> Any:
+        return self._state.client
+
+    @_client.setter
+    def _client(self, value: Any) -> None:
+        self._state.client = value
+
+    def checkpoint(self) -> None:
+        """Write current harness state to session as a CustomEntry."""
+        if self._session_manager is None:
+            return
+        from skillengine.session.models import CustomEntry
+
+        entry = CustomEntry(
+            custom_type="harness_state",
+            data=self._state.to_session_entry(),
+        )
+        self._session_manager._append_and_persist(entry)
 
     @classmethod
     def create(
@@ -257,6 +417,34 @@ class AgentRunner:
         )
 
         return cls(engine, agent_config)
+
+    @classmethod
+    def from_definition(
+        cls,
+        definition: AgentDefinition,
+        environment: Environment,
+        runtime_config: RuntimeConfig | None = None,
+    ) -> AgentRunner:
+        """Create from separated definition + environment.
+
+        This is the Managed Agents-aligned constructor. The old
+        ``__init__`` and ``create()`` still work unchanged.
+
+        Args:
+            definition: Immutable agent definition (model, prompt, skills).
+            environment: Execution environment (engine, adapters, tools).
+            runtime_config: Optional mutable runtime config. Defaults apply
+                if ``None``.
+        """
+        config = AgentConfig.from_parts(definition, runtime_config)
+        return cls(
+            engine=environment.engine,
+            config=config,
+            events=environment.event_bus,
+            model_registry=environment.model_registry,
+            context_manager=environment.context_manager,
+            adapter_registry=environment.adapter_registry,
+        )
 
     @property
     def model_definition(self) -> ModelDefinition | None:
@@ -353,6 +541,81 @@ class AgentRunner:
     @session.setter
     def session(self, value: Any) -> None:
         self._session_manager = value
+
+    def _append_to_conversation(self, msg: AgentMessage) -> None:
+        """Append message to conversation and optionally to session.
+
+        Dual-write strategy: always appends to the in-memory
+        ``_conversation`` list, and if a session manager is active,
+        also persists to the session JSONL file.
+        """
+        self._conversation.append(msg)
+        if self._session_manager is not None:
+            from skillengine.session.conversation import (
+                agent_message_to_session_kwargs,
+            )
+
+            try:
+                kwargs = agent_message_to_session_kwargs(msg)
+                self._session_manager.append_message(**kwargs)
+            except Exception as e:
+                logger.debug("Failed to persist message to session: %s", e)
+
+    @classmethod
+    def wake(
+        cls,
+        session_id: str,
+        session_dir: str | Path,
+        engine: SkillsEngine | None = None,
+        config: AgentConfig | None = None,
+        events: EventBus | None = None,
+        **kwargs: Any,
+    ) -> AgentRunner:
+        """Restore an AgentRunner from a persisted session.
+
+        The session's event log is the source of truth. The conversation,
+        model state, and thinking level are rebuilt from it.
+
+        Args:
+            session_id: ID of the session to restore.
+            session_dir: Directory containing session JSONL files.
+            engine: SkillsEngine (created if None).
+            config: Base config (model/thinking overridden by session).
+            events: EventBus (created if None).
+            **kwargs: Additional kwargs passed to AgentRunner.__init__.
+        """
+        from skillengine.session.conversation import (
+            session_entry_to_agent_message,
+        )
+        from skillengine.session.manager import SessionManager
+
+        session_mgr = SessionManager(
+            session_dir=session_dir, session_id=session_id
+        )
+        ctx = session_mgr.build_context()
+
+        # Rebuild config from session state
+        effective_config = config or AgentConfig.from_env()
+        if ctx.current_model:
+            effective_config.model = ctx.current_model
+        if ctx.current_thinking_level and ctx.current_thinking_level != "off":
+            effective_config.thinking_level = ctx.current_thinking_level
+
+        runner = cls(
+            engine=engine or SkillsEngine(),
+            config=effective_config,
+            events=events,
+            **kwargs,
+        )
+        runner._session_manager = session_mgr
+
+        # Rebuild conversation from session
+        runner._conversation = [
+            session_entry_to_agent_message(entry)
+            for entry in ctx.messages
+        ]
+
+        return runner
 
     @property
     def context_files(self) -> list[Any]:
@@ -524,216 +787,15 @@ class AgentRunner:
         return "\n\n".join(parts)
 
     def get_tools(self) -> list[dict[str, Any]]:
-        """Get tool definitions for function calling."""
+        """Get tool definitions for function calling.
+
+        Delegates to the unified ToolDispatcher for definitions.
+        """
         if not self.config.enable_tools:
             return []
 
-        edit_definition = EditTool().definition()
-        apply_patch_definition = ApplyPatchTool().definition()
-
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "execute",
-                    "description": (
-                        "Execute a shell command and return the output."
-                        " Use this to run scripts, CLI tools, or any shell command."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "command": {
-                                "type": "string",
-                                "description": "The shell command to execute",
-                            },
-                            "cwd": {
-                                "type": "string",
-                                "description": "Working directory for the command (optional)",
-                            },
-                        },
-                        "required": ["command"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "execute_script",
-                    "description": (
-                        "Execute a multi-line shell script."
-                        " Use this for complex operations"
-                        " that require multiple commands."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "script": {
-                                "type": "string",
-                                "description": "The shell script content to execute",
-                            },
-                            "cwd": {
-                                "type": "string",
-                                "description": "Working directory for the script (optional)",
-                            },
-                        },
-                        "required": ["script"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "write",
-                    "description": (
-                        "Write content to a file."
-                        " Creates parent directories automatically."
-                        " Use this instead of heredoc/cat"
-                        " for writing files."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "The file path to write to",
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "The content to write to the file",
-                            },
-                        },
-                        "required": ["path", "content"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "read",
-                    "description": "Read the contents of a file. Returns the file content as text.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "The file path to read",
-                            },
-                        },
-                        "required": ["path"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": edit_definition.name,
-                    "description": edit_definition.description,
-                    "parameters": edit_definition.parameters,
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": apply_patch_definition.name,
-                    "description": apply_patch_definition.description,
-                    "parameters": apply_patch_definition.parameters,
-                },
-            },
-        ]
-
-        # Add skill tool for on-demand skill loading
-        visible_skills = [
-            s for s in self.skills if not s.metadata.invocation.disable_model_invocation
-        ]
-        if visible_skills:
-            skill_names = [s.name for s in visible_skills]
-            tools.append(
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "skill",
-                        "description": (
-                            "Load and execute a skill by name. Skills provide "
-                            "specialized capabilities and detailed instructions. "
-                            "Call this when the user's request matches a skill's "
-                            "description to get the full skill content."
-                        ),
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "description": (
-                                        "The skill name to invoke. Available: "
-                                        + ", ".join(skill_names)
-                                    ),
-                                },
-                                "arguments": {
-                                    "type": "string",
-                                    "description": "Optional arguments to pass to the skill",
-                                },
-                            },
-                            "required": ["name"],
-                        },
-                    },
-                }
-            )
-
-        # Generate tools from skill actions
-        for skill in self.skills:
-            if not skill.has_actions:
-                continue
-            for action in skill.actions.values():
-                tool_name = f"{skill.name}:{action.name}"
-                properties: dict[str, Any] = {}
-                required: list[str] = []
-                for param in action.params:
-                    prop: dict[str, Any] = {"description": param.description or param.name}
-                    if param.type == "file":
-                        prop["type"] = "string"
-                        prop["description"] = (param.description or param.name) + " (file path)"
-                    elif param.type == "number":
-                        prop["type"] = "number"
-                    elif param.type == "bool":
-                        prop["type"] = "boolean"
-                    else:
-                        prop["type"] = "string"
-                    if param.default is not None:
-                        prop["default"] = param.default
-                    properties[param.name] = prop
-                    if param.required:
-                        required.append(param.name)
-                tools.append(
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": tool_name,
-                            "description": action.description or f"{skill.name} {action.name}",
-                            "parameters": {
-                                "type": "object",
-                                "properties": properties,
-                                "required": required,
-                            },
-                        },
-                    }
-                )
-
-        # Append extension-registered tools
-        if self.engine.extensions:
-            for tool_info in self.engine.extensions.get_tools():
-                tools.append(
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": tool_info.name,
-                            "description": tool_info.description,
-                            "parameters": tool_info.parameters,
-                        },
-                    }
-                )
-
-        return tools
+        self._refresh_dispatcher_tools()
+        return self._dispatcher.get_definitions()
 
     @staticmethod
     def _format_content_for_openai(
@@ -954,12 +1016,49 @@ class AgentRunner:
             },
         )
 
+    def _make_tool_context(self, turn: int = 0) -> ToolContext:
+        """Create a ToolContext for the current dispatch call."""
+        workspace_root = getattr(self, "default_cwd", None)
+        return ToolContext(
+            engine=self.engine,
+            config=self.config,
+            abort_event=self._abort_event,
+            event_bus=self.events,
+            turn=turn,
+            cwd=str(workspace_root) if workspace_root else None,
+            adapter_registry=self.adapter_registry,
+            active_adapter_name=self._active_adapter_name,
+            session_id=self.config.session_id,
+        )
+
+    def _refresh_dispatcher_tools(self) -> None:
+        """Refresh skill and extension tools on the dispatcher.
+
+        Called when skills are reloaded or extensions change.
+        """
+        # Remove old skill/action/extension tools, keep builtins
+        builtin_names = {"execute", "execute_script", "write", "read", "edit", "apply_patch"}
+        to_remove = [n for n in list(self._dispatcher._tools) if n not in builtin_names]
+        for n in to_remove:
+            self._dispatcher.unregister(n)
+
+        # Re-register skill tools
+        self._dispatcher.register_skill_tools(self.skills, self._skill_handler)
+        self._dispatcher.register_action_tools(self.skills)
+
+        # Re-register extension tools
+        if self.engine.extensions:
+            self._dispatcher.register_extension_tools(self.engine.extensions)
+
     async def _execute_tool(
         self,
         tool_call: dict[str, Any],
         on_output: Callable[[str], None] | None = None,
     ) -> str:
         """Execute a tool call and return the result.
+
+        Delegates to the unified ToolDispatcher. Falls back to legacy
+        dispatch for any tools not yet registered on the dispatcher.
 
         Args:
             tool_call: Tool call dict with name, arguments, id.
@@ -976,151 +1075,11 @@ class AgentRunner:
 
         logger.debug("Executing tool %s with args: %s", name, args)
 
-        # Pass abort signal to runtime so it can kill long-running processes
-        abort = self._abort_event if self._abort_event.is_set() is False else None
-        # Always pass it — runtime checks .is_set()
-        abort = self._abort_event
+        # Ensure dispatcher has current skill/extension tools
+        self._refresh_dispatcher_tools()
 
-        if name == "execute":
-            command = args.get("command", "")
-            cwd = args.get("cwd")
-            with self.engine.env_context():
-                result = await self.engine.execute(
-                    command,
-                    cwd=cwd,
-                    on_output=on_output,
-                    abort_signal=abort,
-                )
-            if result.success:
-                return result.output or "(no output)"
-            return f"Error (exit {result.exit_code}): {result.error}"
-
-        if name == "execute_script":
-            script = args.get("script", "")
-            cwd = args.get("cwd")
-            with self.engine.env_context():
-                result = await self.engine.execute_script(
-                    script,
-                    cwd=cwd,
-                    on_output=on_output,
-                    abort_signal=abort,
-                )
-            if result.success:
-                return result.output or "(no output)"
-            return f"Error (exit {result.exit_code}): {result.error}"
-
-        if name == "write":
-            file_path = args.get("path", "")
-            content = args.get("content", "")
-            try:
-                p = Path(file_path)
-                p.parent.mkdir(parents=True, exist_ok=True)
-                p.write_text(content, encoding="utf-8")
-                return f"Written {len(content)} bytes to {file_path}"
-            except Exception as e:
-                return f"Error writing file: {e}"
-
-        if name == "read":
-            file_path = args.get("path", "")
-            try:
-                p = Path(file_path)
-                if not p.exists():
-                    return f"Error: File not found: {file_path}"
-                text = p.read_text(encoding="utf-8")
-                if len(text) > 100_000:
-                    text = text[:100_000] + "\n... (truncated)"
-                return text
-            except Exception as e:
-                return f"Error reading file: {e}"
-
-        if name == "edit":
-            workspace_root = getattr(self, "default_cwd", None)
-            tool_cwd = str(workspace_root) if workspace_root else os.getcwd()
-            tool = EditTool(cwd=tool_cwd)
-            return await tool.execute(args)
-
-        if name == "apply_patch":
-            workspace_root = getattr(self, "default_cwd", None)
-            enforce_workspace_boundary = bool(workspace_root)
-            tool_cwd = str(workspace_root) if workspace_root else os.getcwd()
-            tool = ApplyPatchTool(
-                cwd=tool_cwd,
-                enforce_workspace_boundary=enforce_workspace_boundary,
-            )
-            return await tool.execute(args)
-
-        # Dispatch skill tool (on-demand loading)
-        if name == "skill":
-            skill_name = args.get("name", "")
-            arguments = args.get("arguments", "")
-            skill = self.get_skill(skill_name)
-            if skill is None:
-                available = ", ".join(s.name for s in self.skills)
-                return f"Error: Skill '{skill_name}' not found. Available: {available}"
-
-            # Per-skill model switching
-            previous_model: str | None = None
-            if skill.model and skill.model != self.config.model:
-                previous_model = self.config.model
-                self.switch_model(skill.model)
-
-            try:
-                content = skill.content
-
-                # $ARGUMENTS substitution
-                content = self._substitute_arguments(content, arguments)
-
-                # Dynamic content injection (!`command`)
-                content = await self._preprocess_dynamic_content(content)
-
-                # Context fork: run in isolated subagent
-                if skill.context == "fork":
-                    return await self._execute_skill_forked(skill, arguments)
-
-                # Prepend allowed-tools hint if restricted
-                if skill.allowed_tools:
-                    tools_hint = ", ".join(skill.allowed_tools)
-                    content = f"[Allowed tools for this skill: {tools_hint}]\n\n" + content
-
-                return content
-            finally:
-                # Restore model if switched
-                if previous_model is not None:
-                    self.switch_model(previous_model)
-
-        # Dispatch skill action tools (format: "skill-name:action-name")
-        if ":" in name:
-            skill_name, action_name = name.split(":", 1)
-            skill = self.get_skill(skill_name)
-            if skill and skill.get_action(action_name):
-                action = skill.get_action(action_name)
-                # Build positional args from named params
-                cli_args = self._build_action_args(action, args)
-                with self.engine.env_context():
-                    result = await self.engine.execute_action(
-                        skill_name,
-                        action_name,
-                        args=cli_args,
-                        timeout=self.engine.config.default_timeout_seconds,
-                    )
-                if result.success:
-                    output = result.output or "(no output)"
-                    if action.output == "json":
-                        # Return raw JSON for LLM to parse
-                        return output
-                    return output
-                return f"Error (exit {result.exit_code}): {result.error}"
-
-        # Dispatch to extension-registered tools
-        if self.engine.extensions:
-            for tool_info in self.engine.extensions.get_tools():
-                if tool_info.name == name and tool_info.handler:
-                    result = tool_info.handler(**args)
-                    if asyncio.iscoroutine(result):
-                        result = await result
-                    return str(result) if result is not None else "(no output)"
-
-        return f"Error: Unknown tool '{name}'"
+        ctx = self._make_tool_context()
+        return await self._dispatcher.dispatch(name, args, ctx, on_output)
 
     @staticmethod
     def _build_action_args(
@@ -1352,9 +1311,9 @@ class AgentRunner:
                 f"</skill-content>\n\n"
                 f"User input: {user_input}"
             )
-            self._conversation.append(AgentMessage(role="user", content=skill_context))
+            self._append_to_conversation(AgentMessage(role="user", content=skill_context))
         else:
-            self._conversation.append(AgentMessage(role="user", content=user_input))
+            self._append_to_conversation(AgentMessage(role="user", content=user_input))
 
         # --- agent_start event ---
         await self.events.emit(
@@ -1378,7 +1337,7 @@ class AgentRunner:
                 # --- steering check ---
                 steering = self._drain_steering()
                 if steering:
-                    self._conversation.append(AgentMessage(role="user", content=steering))
+                    self._append_to_conversation(AgentMessage(role="user", content=steering))
 
                 # --- turn_start event ---
                 await self.events.emit(
@@ -1402,7 +1361,7 @@ class AgentRunner:
                     messages_for_llm = await self.context_manager.compact(messages_for_llm)
 
                 response = await self._call_llm(messages_for_llm)
-                self._conversation.append(response)
+                self._append_to_conversation(response)
 
                 # --- turn_end event ---
                 await self.events.emit(
@@ -1434,7 +1393,7 @@ class AgentRunner:
                     # --- steering check between tools ---
                     steering = self._drain_steering()
                     if steering:
-                        self._conversation.append(AgentMessage(role="user", content=steering))
+                        self._append_to_conversation(AgentMessage(role="user", content=steering))
                         steered = True
                         break  # Stop executing remaining tools, start new turn
 
@@ -1463,7 +1422,7 @@ class AgentRunner:
                             if r.block:
                                 blocked = True
                                 block_reason = r.reason or "Blocked by event handler"
-                                self._conversation.append(
+                                self._append_to_conversation(
                                     AgentMessage(
                                         role="tool",
                                         content=f"[Blocked] {block_reason}",
@@ -1522,7 +1481,7 @@ class AgentRunner:
                         if isinstance(r, ToolResultEventResult) and r.modified_result is not None:
                             result = r.modified_result
 
-                    self._conversation.append(
+                    self._append_to_conversation(
                         AgentMessage(
                             role="tool",
                             content=result,
@@ -1770,9 +1729,9 @@ class AgentRunner:
                 f"</skill-content>\n\n"
                 f"User input: {user_input}"
             )
-            self._conversation.append(AgentMessage(role="user", content=skill_context))
+            self._append_to_conversation(AgentMessage(role="user", content=skill_context))
         else:
-            self._conversation.append(AgentMessage(role="user", content=user_input))
+            self._append_to_conversation(AgentMessage(role="user", content=user_input))
 
         # --- agent_start event ---
         await self.events.emit(
@@ -1795,7 +1754,7 @@ class AgentRunner:
                 # --- steering check ---
                 steering = self._drain_steering()
                 if steering:
-                    self._conversation.append(AgentMessage(role="user", content=steering))
+                    self._append_to_conversation(AgentMessage(role="user", content=steering))
 
                 yield StreamEvent(type="turn_start", turn=turn)
 
@@ -1863,7 +1822,7 @@ class AgentRunner:
                     tool_calls=tool_calls,
                     reasoning=reasoning_content or None,
                 )
-                self._conversation.append(response)
+                self._append_to_conversation(response)
 
                 yield StreamEvent(
                     type="turn_end",
@@ -1902,7 +1861,7 @@ class AgentRunner:
                     # --- steering check between tools ---
                     steering = self._drain_steering()
                     if steering:
-                        self._conversation.append(AgentMessage(role="user", content=steering))
+                        self._append_to_conversation(AgentMessage(role="user", content=steering))
                         steered = True
                         break
 
@@ -1931,7 +1890,7 @@ class AgentRunner:
                             if r.block:
                                 blocked = True
                                 block_reason = r.reason or "Blocked by event handler"
-                                self._conversation.append(
+                                self._append_to_conversation(
                                     AgentMessage(
                                         role="tool",
                                         content=f"[Blocked] {block_reason}",
@@ -1993,7 +1952,7 @@ class AgentRunner:
                         if isinstance(r, ToolResultEventResult) and r.modified_result is not None:
                             result = r.modified_result
 
-                    self._conversation.append(
+                    self._append_to_conversation(
                         AgentMessage(
                             role="tool",
                             content=result,

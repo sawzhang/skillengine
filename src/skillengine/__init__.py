@@ -51,7 +51,9 @@ from skillengine.context import (
     estimate_tokens,
 )
 from skillengine.context_files import ContextFile, load_context_files
+from skillengine.definition import AgentDefinition, RuntimeConfig
 from skillengine.engine import SkillsEngine
+from skillengine.environment import Environment
 from skillengine.events import (
     AFTER_TOOL_RESULT,
     AGENT_END,
@@ -180,6 +182,9 @@ __all__ = [
     "AgentConfig",
     "AgentMessage",
     "AgentAbortedError",
+    "AgentDefinition",
+    "RuntimeConfig",
+    "Environment",
     "create_agent",
     # Events
     "EventBus",
