@@ -137,9 +137,7 @@ class SkillToolHandler:
 
         return content
 
-    async def _execute_skill_forked(
-        self, skill: Any, arguments: str, ctx: ToolContext
-    ) -> str:
+    async def _execute_skill_forked(self, skill: Any, arguments: str, ctx: ToolContext) -> str:
         """Execute skill in a forked (isolated) context.
 
         Delegates to the AgentRunner's existing fork implementation.
