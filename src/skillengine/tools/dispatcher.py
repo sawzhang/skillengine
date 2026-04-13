@@ -403,9 +403,7 @@ class ToolDispatcher:
             skills: List of Skill objects from the engine snapshot.
             skill_handler: Callable handling 'skill' tool dispatch.
         """
-        visible_skills = [
-            s for s in skills if not s.metadata.invocation.disable_model_invocation
-        ]
+        visible_skills = [s for s in skills if not s.metadata.invocation.disable_model_invocation]
         if visible_skills:
             skill_names = [s.name for s in visible_skills]
             self.register(

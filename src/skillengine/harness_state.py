@@ -45,24 +45,18 @@ class HarnessState:
     context_files: list[Any] = field(default_factory=list)
 
     #: Skill change callbacks
-    on_skill_change: list[Callable] = field(default_factory=list, repr=False)
+    on_skill_change: list[Callable[..., Any]] = field(default_factory=list, repr=False)
 
     # --- Transient state (not serialized, recreated on restore) ---
 
     #: Abort signal
-    abort_event: asyncio.Event = field(
-        default_factory=asyncio.Event, repr=False
-    )
+    abort_event: asyncio.Event = field(default_factory=asyncio.Event, repr=False)
 
     #: Steering message queue
-    steering_queue: asyncio.Queue = field(
-        default_factory=asyncio.Queue, repr=False
-    )
+    steering_queue: asyncio.Queue[Any] = field(default_factory=asyncio.Queue, repr=False)
 
     #: Follow-up message queue
-    followup_queue: asyncio.Queue = field(
-        default_factory=asyncio.Queue, repr=False
-    )
+    followup_queue: asyncio.Queue[Any] = field(default_factory=asyncio.Queue, repr=False)
 
     #: OpenAI client (lazy-init)
     client: Any = field(default=None, repr=False)

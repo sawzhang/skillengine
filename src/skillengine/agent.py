@@ -276,11 +276,7 @@ class AgentRunner:
         # Consolidated mutable state (Managed Agents pattern)
         self._state = HarnessState(
             active_model=self.config.model,
-            thinking_level=(
-                self.config.thinking_level
-                if self.config.thinking_level
-                else "off"
-            ),
+            thinking_level=(self.config.thinking_level if self.config.thinking_level else "off"),
         )
 
         # Unified tool dispatcher (Managed Agents pattern)
@@ -589,9 +585,7 @@ class AgentRunner:
         )
         from skillengine.session.manager import SessionManager
 
-        session_mgr = SessionManager(
-            session_dir=session_dir, session_id=session_id
-        )
+        session_mgr = SessionManager(session_dir=session_dir, session_id=session_id)
         ctx = session_mgr.build_context()
 
         # Rebuild config from session state
@@ -610,10 +604,7 @@ class AgentRunner:
         runner._session_manager = session_mgr
 
         # Rebuild conversation from session
-        runner._conversation = [
-            session_entry_to_agent_message(entry)
-            for entry in ctx.messages
-        ]
+        runner._conversation = [session_entry_to_agent_message(entry) for entry in ctx.messages]
 
         return runner
 
