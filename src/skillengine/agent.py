@@ -163,16 +163,21 @@ class AgentConfig:
 
     @classmethod
     def from_env(cls, **overrides: Any) -> AgentConfig:
-        """Create config from environment variables."""
+        """Create config from environment variables.
+
+        Explicit ``overrides`` take precedence over env-derived values, so callers
+        can pass any field (including ``base_url``/``api_key``/``model``) without
+        triggering a kwarg collision.
+        """
         cache_ret = os.environ.get("ASE_CACHE_RETENTION", "short")
-        return cls(
-            base_url=os.environ.get("OPENAI_BASE_URL"),
-            api_key=os.environ.get("OPENAI_API_KEY"),
-            oauth_token=os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"),
-            model=os.environ.get("MINIMAX_MODEL", "MiniMax-M2.1"),
-            cache_retention=cache_ret if cache_ret in ("none", "short", "long") else "short",
-            **overrides,
-        )
+        env_defaults: dict[str, Any] = {
+            "base_url": os.environ.get("OPENAI_BASE_URL"),
+            "api_key": os.environ.get("OPENAI_API_KEY"),
+            "oauth_token": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"),
+            "model": os.environ.get("MINIMAX_MODEL", "MiniMax-M2.1"),
+            "cache_retention": cache_ret if cache_ret in ("none", "short", "long") else "short",
+        }
+        return cls(**{**env_defaults, **overrides})
 
     def to_definition(self) -> AgentDefinition:
         """Extract the immutable agent definition."""

@@ -129,6 +129,73 @@ class TestAgentConfigConversion:
         assert config.max_turns == 20  # RuntimeConfig default
 
 
+class TestAgentConfigFromEnv:
+    @pytest.fixture
+    def clean_env(self, monkeypatch):
+        for var in (
+            "OPENAI_BASE_URL",
+            "OPENAI_API_KEY",
+            "CLAUDE_CODE_OAUTH_TOKEN",
+            "MINIMAX_MODEL",
+            "ASE_CACHE_RETENTION",
+        ):
+            monkeypatch.delenv(var, raising=False)
+
+    def test_pure_env(self, clean_env, monkeypatch):
+        monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example.com/v1")
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+        monkeypatch.setenv("MINIMAX_MODEL", "env-model")
+        monkeypatch.setenv("ASE_CACHE_RETENTION", "long")
+
+        config = AgentConfig.from_env()
+        assert config.base_url == "https://env.example.com/v1"
+        assert config.api_key == "sk-env"
+        assert config.model == "env-model"
+        assert config.cache_retention == "long"
+
+    def test_overrides_win_over_env(self, clean_env, monkeypatch):
+        """Regression: explicit overrides must not collide with env-derived kwargs."""
+        monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example.com/v1")
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+        monkeypatch.setenv("MINIMAX_MODEL", "env-model")
+
+        config = AgentConfig.from_env(
+            base_url="https://override.example.com/v1",
+            api_key="sk-override",
+            model="override-model",
+            cache_retention="none",
+        )
+        assert config.base_url == "https://override.example.com/v1"
+        assert config.api_key == "sk-override"
+        assert config.model == "override-model"
+        assert config.cache_retention == "none"
+
+    def test_partial_override(self, clean_env, monkeypatch):
+        monkeypatch.setenv("OPENAI_BASE_URL", "https://env.example.com/v1")
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+        monkeypatch.setenv("MINIMAX_MODEL", "env-model")
+
+        config = AgentConfig.from_env(model="override-model")
+        assert config.base_url == "https://env.example.com/v1"
+        assert config.api_key == "sk-env"
+        assert config.model == "override-model"
+
+    def test_invalid_cache_retention_falls_back(self, clean_env, monkeypatch):
+        monkeypatch.setenv("ASE_CACHE_RETENTION", "garbage")
+        config = AgentConfig.from_env()
+        assert config.cache_retention == "short"
+
+    def test_non_env_overrides_passthrough(self, clean_env):
+        config = AgentConfig.from_env(
+            max_turns=42,
+            temperature=0.3,
+            enable_tools=False,
+        )
+        assert config.max_turns == 42
+        assert config.temperature == 0.3
+        assert config.enable_tools is False
+
+
 class TestEnvironment:
     def test_creation(self):
         engine = MagicMock()
