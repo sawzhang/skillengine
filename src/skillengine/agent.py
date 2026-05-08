@@ -277,6 +277,7 @@ class AgentRunner:
         else:
             self.adapter_registry = AdapterRegistry()
         self._session_manager: Any = None  # SessionManager (lazy init)
+        self.scheduler: Any = None  # CronScheduler (initialized in run_interactive)
 
         # Consolidated mutable state (Managed Agents pattern)
         self._state = HarnessState(
@@ -2094,8 +2095,9 @@ class AgentRunner:
             prompt: Input prompt string
             greeting: Optional greeting message
         """
-        from skillengine.commands import CommandRegistry
+        from skillengine.commands import CommandRegistry, make_cron_handler
         from skillengine.prompts import PromptTemplateLoader
+        from skillengine.scheduler import CronJob, CronScheduler
 
         if greeting:
             print(greeting)
@@ -2112,6 +2114,26 @@ class AgentRunner:
         prompt_loader = PromptTemplateLoader()
         templates = prompt_loader.load_all()
         commands.sync_from_prompts(templates, prompt_loader)
+
+        # Cron scheduler — fires prompts back into the agent via follow_up().
+        scheduler = CronScheduler()
+        self.scheduler = scheduler
+
+        async def _on_cron_fire(job: CronJob) -> None:
+            self.follow_up(job.prompt)
+            print(f"\n[cron {job.id}] fired → {job.prompt[:60]}")
+
+        await scheduler.start(_on_cron_fire)
+        commands.register(
+            "/cron",
+            make_cron_handler(scheduler),
+            description="Schedule prompts via cron expression",
+            source="builtin",
+            usage=(
+                '/cron list | add "<expr>" "<prompt>" | once "<expr>" "<prompt>" | '
+                "delete <id> | clear"
+            ),
+        )
 
         # Optional readline tab-completion
         try:
@@ -2130,55 +2152,80 @@ class AgentRunner:
 
         total_cmds = len(commands.list_commands())
         print(f"Loaded {len(self.skills)} skills: {', '.join(s.name for s in self.skills)}")
-        print(f"Commands: /help, /skills, /reload, ... ({total_cmds} total)")
+        print(f"Commands: /help, /skills, /reload, /cron, ... ({total_cmds} total)")
         print("Type /help for all commands, /quit to exit\n")
 
-        while True:
-            try:
-                user_input = input(prompt).strip()
-            except (EOFError, KeyboardInterrupt):
-                print("\nGoodbye!")
-                break
+        # Single input task is reused across iterations — cron-fired follow-ups
+        # take a separate branch and never cancel a half-typed line.
+        input_task: asyncio.Task[str] | None = None
+        try:
+            while True:
+                if input_task is None or input_task.done():
+                    input_task = asyncio.create_task(asyncio.to_thread(input, prompt))
+                followup_task = asyncio.create_task(self._followup_queue.get())
+                done, _ = await asyncio.wait(
+                    {input_task, followup_task}, return_when=asyncio.FIRST_COMPLETED
+                )
 
-            if not user_input:
-                continue
+                user_input: str
+                if followup_task in done:
+                    if followup_task.cancelled() or followup_task.exception() is not None:
+                        continue
+                    user_input = followup_task.result().strip()
+                    if not user_input:
+                        continue
+                    print(f"\n{prompt}{user_input}")
+                else:
+                    followup_task.cancel()
+                    try:
+                        user_input = input_task.result().strip()
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nGoodbye!")
+                        break
+                    input_task = None
+                    if not user_input:
+                        continue
 
-            # Dispatch slash commands
-            if user_input.startswith("/"):
-                parts = user_input.split(None, 1)
-                cmd_name = parts[0].lower()
-                cmd_args = parts[1] if len(parts) > 1 else ""
+                # Dispatch slash commands
+                if user_input.startswith("/"):
+                    parts = user_input.split(None, 1)
+                    cmd_name = parts[0].lower()
+                    cmd_args = parts[1] if len(parts) > 1 else ""
 
-                result = await commands.dispatch(cmd_name, cmd_args)
+                    result = await commands.dispatch(cmd_name, cmd_args)
 
-                if commands.should_quit:
-                    print(result.output)
-                    break
+                    if commands.should_quit:
+                        print(result.output)
+                        break
 
-                if result.handled:
-                    if cmd_name == "/clear":
-                        self.clear_history()
-                    if result.output:
-                        print(f"{result.output}\n")
+                    if result.handled:
+                        if cmd_name == "/clear":
+                            self.clear_history()
+                        if result.output:
+                            print(f"{result.output}\n")
+                        if result.error:
+                            print(f"Error: {result.error}\n")
+                        continue
+
+                    # Not handled - pass content through to LLM
+                    passthrough = result.content or user_input
+                    try:
+                        response = await self.chat(passthrough)
+                        print(f"\nAssistant: {response.content}\n")
+                    except Exception as e:
+                        print(f"\nError: {e}\n")
                     continue
 
-                # Not handled - pass content through to LLM
-                # This covers: skill commands, prompt templates,
-                # AND unknown commands (let LLM reason about them)
-                passthrough = result.content or user_input
+                # Regular chat
                 try:
-                    response = await self.chat(passthrough)
+                    response = await self.chat(user_input)
                     print(f"\nAssistant: {response.content}\n")
                 except Exception as e:
                     print(f"\nError: {e}\n")
-                continue
-
-            # Regular chat
-            try:
-                response = await self.chat(user_input)
-                print(f"\nAssistant: {response.content}\n")
-            except Exception as e:
-                print(f"\nError: {e}\n")
+        finally:
+            await scheduler.stop()
+            if input_task is not None and not input_task.done():
+                input_task.cancel()
 
 
 # Convenience function for quick setup

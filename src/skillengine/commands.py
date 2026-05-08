@@ -8,6 +8,7 @@ into a single dispatch point.
 from __future__ import annotations
 
 import asyncio
+import shlex
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from skillengine.extensions.manager import ExtensionManager
     from skillengine.models import Skill
     from skillengine.prompts import PromptTemplate, PromptTemplateLoader
+    from skillengine.scheduler import CronScheduler
 
 
 @dataclass
@@ -331,3 +333,78 @@ class CommandRegistry:
         self.engine.invalidate_cache()
         snapshot = self.engine.get_snapshot()
         return CommandResult(output=f"Reloaded. {len(snapshot.skills)} skills available.")
+
+
+def make_cron_handler(scheduler: CronScheduler) -> Callable[[str], Any]:
+    """Build a ``/cron`` slash-command handler bound to a :class:`CronScheduler`.
+
+    Subcommands:
+      - ``/cron list``                                   — list jobs
+      - ``/cron add "<expr>" "<prompt>"``                — add recurring job
+      - ``/cron once "<expr>" "<prompt>"``               — add one-shot job
+      - ``/cron delete <id>``                            — remove a job
+      - ``/cron clear``                                  — remove all jobs
+    """
+
+    def _format_jobs(scheduler: CronScheduler) -> str:
+        jobs = scheduler.list()
+        if not jobs:
+            return "(no cron jobs)"
+        lines = [f"{'ID':<10}{'CRON':<18}{'NEXT':<18}{'KIND':<6}PROMPT"]
+        for job in jobs:
+            kind = "1x" if not job.recurring else "rec"
+            preview = job.prompt.replace("\n", " ")
+            if len(preview) > 50:
+                preview = preview[:47] + "..."
+            lines.append(
+                f"{job.id:<10}{job.cron:<18}{job.next_fire_at:%m-%d %H:%M}     {kind:<6}{preview}"
+            )
+        return "\n".join(lines)
+
+    def handler(args: str) -> CommandResult:
+        try:
+            tokens = shlex.split(args) if args else []
+        except ValueError as e:
+            return CommandResult(error=f"Could not parse arguments: {e}")
+
+        if not tokens or tokens[0] == "list":
+            return CommandResult(output=_format_jobs(scheduler))
+
+        sub = tokens[0]
+        if sub in ("add", "once"):
+            if len(tokens) < 3:
+                return CommandResult(error=f'Usage: /cron {sub} "<cron expression>" "<prompt>"')
+            cron_expr = tokens[1]
+            prompt_text = " ".join(tokens[2:])
+            try:
+                job = scheduler.add(cron_expr, prompt_text, recurring=(sub == "add"))
+            except ValueError as e:
+                return CommandResult(error=f"Invalid cron job: {e}")
+            kind = "recurring" if job.recurring else "one-shot"
+            return CommandResult(
+                output=(
+                    f"Added {kind} job {job.id}: {job.cron!r} → "
+                    f"{prompt_text[:40]!r}\nNext fire: {job.next_fire_at:%Y-%m-%d %H:%M}"
+                )
+            )
+
+        if sub == "delete":
+            if len(tokens) != 2:
+                return CommandResult(error="Usage: /cron delete <id>")
+            ok = scheduler.delete(tokens[1])
+            return CommandResult(
+                output=f"Deleted job {tokens[1]}" if ok else f"No job with id {tokens[1]!r}"
+            )
+
+        if sub == "clear":
+            n = 0
+            for job in scheduler.list():
+                if scheduler.delete(job.id):
+                    n += 1
+            return CommandResult(output=f"Cleared {n} job(s)")
+
+        return CommandResult(
+            error=(f"Unknown subcommand: {sub!r}. Use one of: list | add | once | delete | clear")
+        )
+
+    return handler

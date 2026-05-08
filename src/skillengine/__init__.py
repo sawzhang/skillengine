@@ -126,6 +126,7 @@ from skillengine.models import (
 )
 from skillengine.prompts import PromptTemplate, PromptTemplateLoader
 from skillengine.runtime import BashRuntime, CodeModeRuntime, SkillRuntime
+from skillengine.scheduler import CronExpression, CronJob, CronScheduler
 
 # Optional: BoxLite sandbox runtime
 try:
@@ -271,6 +272,10 @@ __all__ = [
     # Commands
     "CommandRegistry",
     "CommandResult",
+    # Scheduler (cron → prompt)
+    "CronExpression",
+    "CronJob",
+    "CronScheduler",
     # Prompts
     "PromptTemplate",
     "PromptTemplateLoader",
