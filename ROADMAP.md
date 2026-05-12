@@ -4,13 +4,35 @@ SkillEngine improvement roadmap, based on architectural comparison with [pi-mono
 
 Our core advantage — Markdown+YAML skill definition, eligibility filtering, deterministic actions, hot-reload — remains the differentiator. The improvements below focus on **agent runtime capabilities** to reach production-grade extensibility.
 
+## Status Update (2026-05)
+
+This roadmap started as a forward-looking design document. Most core runtime items are now implemented.
+
+| Area | Status | Notes |
+|------|--------|-------|
+| P0 Event System | Done | Typed EventBus and lifecycle/tool/context/input events are implemented |
+| P0 Structured Stream Events | Done | chat_stream_events with text/thinking/tool events is implemented |
+| P1 Model Metadata & Registry | Done | ModelRegistry, catalog, token usage, and cost calculation are implemented |
+| P1 Context Management Pipeline | Done | ContextManager + compaction strategies are implemented |
+| P2 Tool Execution Streaming | Done | Runtime output streaming and tool execution update events are implemented |
+| P2 Steering & Abort | Done | abort, steer, and follow-up controls are implemented |
+| P3 Dynamic Provider Registry | Done | AdapterRegistry and runtime adapter switching are implemented |
+
+### Current Focus
+
+- Hardening and correctness in edge cases (especially multi-modal context/token accounting)
+- Documentation and implementation status consistency
+- Dependency and typing quality tightening
+
+The sections below preserve the original target designs for historical context.
+
 ---
 
 ## P0 — Event System
 
 **Problem**: The agent loop is a black box. Callers cannot intercept tool execution, modify context, or observe lifecycle transitions. Without events, any extension/plugin system is fundamentally limited.
 
-**Current state**: No event mechanism. `AgentRunner.chat()` runs to completion with no hooks.
+**Current state**: Implemented. EventBus hooks are integrated into the agent loop and extension system.
 
 **Target design**:
 
@@ -54,12 +76,7 @@ async def guard(event: ToolCallEvent) -> ToolCallEventResult:
 
 **Problem**: `chat_stream()` yields `AsyncIterator[str]` — plain text deltas only. Cannot distinguish thinking, text, tool calls, or errors. UI cannot render them differently.
 
-**Current state**:
-
-```python
-async for chunk in agent.chat_stream("hello"):
-    print(chunk, end="")  # All chunks are opaque strings
-```
+**Current state**: Implemented. `chat_stream_events()` yields structured lifecycle, thinking, text, tool call, tool output, and done/error events.
 
 **Target design**:
 
@@ -109,13 +126,11 @@ async for event in agent.chat_stream_events("hello"):
 
 ## P1 — Model Metadata & Registry
 
-**Problem**: Models are just a string name + base_url. No metadata (cost, context window, capabilities). Cannot make intelligent decisions about model selection, cost tracking, or context overflow.
+**Problem (historical)**: Models were just a string name + base_url. No metadata (cost, context window, capabilities).
 
 **Current state**:
 
-```python
-config = AgentConfig(model="MiniMax-M2.1", base_url="...", api_key="...")
-```
+Implemented via `ModelDefinition`, `ModelRegistry`, built-in catalog, and token usage/cost helpers.
 
 **Target design**:
 
@@ -162,9 +177,9 @@ class ModelRegistry:
 
 ## P1 — Context Management Pipeline
 
-**Problem**: No context window management. Long conversations will exceed model limits and fail. No mechanism to compress, prune, or transform messages before sending to LLM.
+**Problem (historical)**: No context window management. Long conversations could exceed model limits.
 
-**Current state**: Messages accumulate unbounded. No awareness of token count or context window.
+**Current state**: Implemented with context estimation and compaction strategies in the agent loop.
 
 **Target design**:
 
@@ -220,13 +235,7 @@ class TokenBudgetCompactor:
 
 **Problem**: Tool execution is fire-and-forget. Long-running commands (bash scripts, API calls) give no feedback until completion.
 
-**Current state**:
-
-```python
-class SkillRuntime(ABC):
-    async def execute(self, command, cwd, env, timeout) -> ExecutionResult
-    # Returns only after completion — no intermediate output
-```
+**Current state**: Implemented. Runtime output can stream via callbacks and tool execution update events.
 
 **Target design**:
 
@@ -270,9 +279,9 @@ def on_tool_output(event):
 
 ## P2 — Steering & Abort
 
-**Problem**: Once the agent loop starts, the caller has no control. Cannot cancel a runaway tool, interrupt a multi-turn loop, or inject a correction mid-execution.
+**Problem (historical)**: Once the agent loop started, callers had no interrupt controls.
 
-**Current state**: `chat()` blocks until the full agent loop completes.
+**Current state**: Implemented with abort, steer, and follow-up controls across modes.
 
 **Target design**:
 
@@ -313,7 +322,7 @@ class AgentRunner:
 
 **Problem**: Adapters are bound at initialization. Cannot add a new LLM provider at runtime (e.g., from an extension or plugin).
 
-**Current state**: Single adapter instance passed to `AgentRunner`.
+**Current state**: Implemented with AdapterRegistry and extension adapter registration APIs.
 
 **Target design**:
 
@@ -346,6 +355,8 @@ agent.set_adapter("my-local-llm")
 ---
 
 ## Implementation Order
+
+Status: Original delivery order completed. This section is retained as historical sequence.
 
 ```
 Phase 1 (Foundation)

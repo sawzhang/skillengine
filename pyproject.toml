@@ -27,10 +27,6 @@ dependencies = [
     "rich>=13.0",
     "openai>=2.16.0",
     "python-dotenv>=1.2.1",
-    "pypdf>=6.6.2",
-    "pillow>=12.1.0",
-    "markitdown[pptx]>=0.1.4",
-    "reportlab>=4.4.9",
     "partial-json-parser>=0.1",
 ]
 
@@ -43,6 +39,15 @@ web = ["starlette>=0.27", "uvicorn>=0.23"]
 sandbox = ["boxlite>=0.1"]
 a2a-server = ["fastapi>=0.100", "uvicorn>=0.23"]
 claude-sdk = ["claude-agent-sdk>=0.1"]
+skills-pdf = ["pypdf>=6.6.2", "reportlab>=4.4.9"]
+skills-pptx = ["markitdown[pptx]>=0.1.4"]
+skills-media = ["pillow>=12.1.0"]
+skills-all = [
+    "pypdf>=6.6.2",
+    "reportlab>=4.4.9",
+    "markitdown[pptx]>=0.1.4",
+    "pillow>=12.1.0",
+]
 
 [dependency-groups]
 dev = [
@@ -53,6 +58,10 @@ dev = [
     "types-PyYAML>=6.0",
     "fastapi>=0.135.2",
     "uvicorn>=0.41.0",
+    "pypdf>=6.6.2",
+    "reportlab>=4.4.9",
+    "markitdown[pptx]>=0.1.4",
+    "pillow>=12.1.0",
 ]
 
 [project.urls]

@@ -45,11 +45,22 @@ Your Skills (Markdown + YAML)
 ### Install
 
 ```bash
-# With uv (recommended)
+# Core engine only (recommended minimal install)
 uv add skillengine
 
-# Or pip
-pip install skillengine[openai]
+# Add provider adapters
+uv add -e ".[openai]"
+uv add -e ".[anthropic]"
+
+# Add bundled skill dependency packs
+uv add -e ".[skills-pdf]"
+uv add -e ".[skills-pptx]"
+uv add -e ".[skills-media]"
+# or everything at once
+uv add -e ".[skills-all]"
+
+# pip equivalents
+pip install "skillengine[openai,skills-all]"
 ```
 
 ### Create a Skill
@@ -243,15 +254,21 @@ class DockerRuntime(SkillRuntime):
 
 See [ROADMAP.md](ROADMAP.md) for the full technical roadmap. Summary:
 
-| Phase | Priority | Feature |
-|-------|----------|---------|
-| 1 | P0 | Event system (lifecycle hooks, tool guards) |
-| 1 | P0 | Structured stream events (thinking, tools, text) |
-| 2 | P1 | Model metadata registry (cost, context window, capabilities) |
-| 2 | P1 | Context management pipeline (compaction, pruning, token budgets) |
-| 3 | P2 | Tool execution streaming (live output) |
-| 3 | P2 | Steering & abort (cancel, interrupt, redirect mid-execution) |
-| 4 | P3 | Dynamic provider registry (runtime adapter switching) |
+| Area | Status |
+|------|--------|
+| Event system (lifecycle hooks, tool guards) | Done |
+| Structured stream events (thinking, tools, text) | Done |
+| Model metadata registry (cost, context window, capabilities) | Done |
+| Context management pipeline (compaction, pruning, token budgets) | Done |
+| Tool execution streaming (live output) | Done |
+| Steering and abort controls | Done |
+| Dynamic provider registry (runtime adapter switching) | Done |
+
+Current optimization focus:
+
+- Multi-modal context/token accounting hardening
+- Documentation and implementation status alignment
+- Dependency and typing quality tightening
 
 ## Development
 

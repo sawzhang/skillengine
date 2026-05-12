@@ -21,7 +21,9 @@ Example:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from skillengine.models import ImageContent, TextContent
 
 if TYPE_CHECKING:
     from skillengine.agent import AgentMessage
@@ -42,6 +44,49 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
+def estimate_content_tokens(content: Any) -> int:
+    """
+    Estimate token count for message content.
+
+    Supports plain string content and multi-modal block lists
+    (TextContent/ImageContent). Unknown block types fall back to a
+    conservative ``str()`` estimate.
+    """
+    if isinstance(content, str):
+        return estimate_tokens(content)
+
+    if isinstance(content, list):
+        total = 0
+        for block in content:
+            if isinstance(block, TextContent):
+                total += estimate_tokens(block.text)
+                continue
+
+            if isinstance(block, ImageContent):
+                # Image payloads can be large; use a minimum floor so we do
+                # not under-estimate context usage for vision prompts.
+                payload_tokens = max(128, estimate_tokens(block.data))
+                total += payload_tokens + estimate_tokens(block.mime_type) + 8
+                continue
+
+            if isinstance(block, dict):
+                block_type = str(block.get("type", ""))
+                if block_type == "text":
+                    total += estimate_tokens(str(block.get("text", "")))
+                elif block_type == "image":
+                    payload_tokens = max(128, estimate_tokens(str(block.get("data", ""))))
+                    total += payload_tokens + estimate_tokens(str(block.get("mime_type", ""))) + 8
+                else:
+                    total += estimate_tokens(str(block))
+                continue
+
+            total += estimate_tokens(str(block))
+
+        return max(1, total)
+
+    return estimate_tokens(str(content))
+
+
 def estimate_message_tokens(message: AgentMessage) -> int:
     """
     Estimate token count for a single AgentMessage.
@@ -51,7 +96,7 @@ def estimate_message_tokens(message: AgentMessage) -> int:
     # Base overhead per message (role, separators)
     tokens = 4
 
-    tokens += estimate_tokens(message.content)
+    tokens += estimate_content_tokens(message.content)
 
     if message.reasoning:
         tokens += estimate_tokens(message.reasoning)

@@ -13,6 +13,7 @@ from skillengine.context import (
     estimate_messages_tokens,
     estimate_tokens,
 )
+from skillengine.models import ImageContent, TextContent
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +72,33 @@ class TestEstimateMessageTokens:
 
     def test_empty_list(self):
         assert estimate_messages_tokens([]) == 0
+
+    def test_message_with_text_content_blocks(self):
+        plain = AgentMessage(role="user", content="hello world")
+        blocks = AgentMessage(
+            role="user",
+            content=[TextContent(text="hello"), TextContent(text=" world")],
+        )
+        assert estimate_message_tokens(blocks) >= estimate_message_tokens(plain)
+
+    def test_message_with_image_content_blocks(self):
+        image_msg = AgentMessage(
+            role="user",
+            content=[ImageContent(data="a" * 800, mime_type="image/png")],
+        )
+        text_msg = AgentMessage(role="user", content="small")
+        assert estimate_message_tokens(image_msg) > estimate_message_tokens(text_msg)
+
+    def test_message_with_mixed_multimodal_content(self):
+        text_only = AgentMessage(role="user", content="Look at this")
+        mixed = AgentMessage(
+            role="user",
+            content=[
+                TextContent(text="Look at this"),
+                ImageContent(data="b" * 1200, mime_type="image/jpeg"),
+            ],
+        )
+        assert estimate_message_tokens(mixed) > estimate_message_tokens(text_only)
 
 
 # ---------------------------------------------------------------------------
