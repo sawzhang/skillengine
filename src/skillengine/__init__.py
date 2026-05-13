@@ -243,6 +243,8 @@ from skillengine.workflow import (
     WorkflowError,
     WorkflowExecutor,
     WorkflowNode,
+    WorkflowRecord,
+    WorkflowStore,
 )
 
 try:
@@ -461,4 +463,6 @@ __all__ = [
     "ParallelNode",
     "RetryNode",
     "CheckpointNode",
+    "WorkflowStore",
+    "WorkflowRecord",
 ]

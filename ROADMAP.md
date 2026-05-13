@@ -92,7 +92,7 @@ The four releases below close these gaps in dependency order.
 | ID | Item | Files |
 |---|---|---|
 | FLOW-1 | ✅ **Workflow abstraction** — DAG nodes (agent / tool / branch / parallel / retry / checkpoint), serializable | `src/skillengine/workflow/` |
-| FLOW-2 | **Durable execution** — checkpoint persistence to session tree, `--resume <session-id>` | `src/skillengine/workflow/`, `session/` |
+| FLOW-2 | ✅ **Durable execution** — checkpoint persistence to session tree, `--resume <session-id>` | `src/skillengine/workflow/`, `session/` |
 | CUA-1 | **Computer-use & browser tools** — `browser_*` (Playwright), optional `computer_use` (Anthropic computer-use API) | `src/skillengine/tools/browser.py`, `tools/computer_use.py` |
 | MARKET-1 | **Skill marketplace** — version constraints, signature verification, `skills install <name>@<ver>`, official index | `src/skillengine/packages/` |
 | AUTH-1 | **Secret management** — keyring / sops / env-vars, per-skill secret injection, OAuth token refresh | `src/skillengine/auth/` |

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from skillengine.workflow.models import (
     BranchNode,
@@ -12,6 +12,9 @@ from skillengine.workflow.models import (
     Workflow,
     WorkflowContext,
 )
+
+if TYPE_CHECKING:
+    from skillengine.workflow.store import WorkflowStore
 
 
 class WorkflowError(RuntimeError):
@@ -36,12 +39,16 @@ class WorkflowExecutor:
         agents: dict[str, Any] | None = None,
         tools: dict[str, Callable[..., Any]] | None = None,
         checkpoint_sink: CheckpointSink | None = None,
+        store: WorkflowStore | None = None,
+        session_id: str | None = None,
         max_steps: int = 1000,
     ) -> None:
         self.workflow = workflow
         self._agents: dict[str, Any] = agents or {}
         self._tools: dict[str, Callable[..., Any]] = tools or {}
         self.checkpoint_sink: CheckpointSink | None = checkpoint_sink
+        self.store: WorkflowStore | None = store
+        self.session_id: str | None = session_id
         self.max_steps = max_steps
 
     # ------------------------------------------------------------------
@@ -107,26 +114,26 @@ class WorkflowExecutor:
             except Exception as exc:  # noqa: BLE001
                 error = f"{type(exc).__name__}: {exc}"
                 duration_ms = (time.perf_counter() - started) * 1000
-                ctx.record(
-                    NodeResult(
-                        node_id=node.id,
-                        node_type=node.node_type,
-                        output=None,
-                        error=error,
-                        duration_ms=duration_ms,
-                    )
+                result = NodeResult(
+                    node_id=node.id,
+                    node_type=node.node_type,
+                    output=None,
+                    error=error,
+                    duration_ms=duration_ms,
                 )
+                ctx.record(result)
+                self._persist(ctx, result)
                 raise WorkflowError(f"node {node.id!r} failed: {error}") from exc
 
             duration_ms = (time.perf_counter() - started) * 1000
-            ctx.record(
-                NodeResult(
-                    node_id=node.id,
-                    node_type=node.node_type,
-                    output=output,
-                    duration_ms=duration_ms,
-                )
+            result = NodeResult(
+                node_id=node.id,
+                node_type=node.node_type,
+                output=output,
+                duration_ms=duration_ms,
             )
+            ctx.record(result)
+            self._persist(ctx, result)
             last_output = output
 
             # Branch nodes choose their own successor.
@@ -137,4 +144,15 @@ class WorkflowExecutor:
             steps += 1
 
         ctx.current_node = None
+        if self.store is not None and self.session_id is not None:
+            # Final snapshot — current_node is now None, so resume() knows
+            # the workflow has finished cleanly.
+            self.store.save_context(self.session_id, ctx)
         return last_output
+
+    def _persist(self, ctx: WorkflowContext, result: NodeResult) -> None:
+        """Write the latest context snapshot and append to the audit log."""
+        if self.store is None or self.session_id is None:
+            return
+        self.store.append_history(self.session_id, result)
+        self.store.save_context(self.session_id, ctx)

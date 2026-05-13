@@ -250,6 +250,40 @@ def main() -> None:
     )
     cost_parser.add_argument("--top", type=int, default=20, help="Show top N rows")
 
+    workflow_parser = subparsers.add_parser(
+        "workflow", help="Run / resume / inspect durable workflows (FLOW-2)"
+    )
+    workflow_subparsers = workflow_parser.add_subparsers(dest="workflow_command")
+
+    wf_run = workflow_subparsers.add_parser("run", help="Run a workflow from a JSON file")
+    wf_run.add_argument("file", help="Path to a workflow JSON file")
+    wf_run.add_argument(
+        "--store", default=".skills/workflows", help="Workflow store directory"
+    )
+    wf_run.add_argument(
+        "--state", default=None, help="Initial state as a JSON object string"
+    )
+    wf_run.add_argument("--session-id", default=None, help="Explicit session id")
+
+    wf_resume = workflow_subparsers.add_parser(
+        "resume", help="Resume a workflow run from its last checkpoint"
+    )
+    wf_resume.add_argument("session_id", help="Session id to resume")
+    wf_resume.add_argument(
+        "--store", default=".skills/workflows", help="Workflow store directory"
+    )
+
+    wf_list = workflow_subparsers.add_parser("list", help="List durable workflow sessions")
+    wf_list.add_argument(
+        "--store", default=".skills/workflows", help="Workflow store directory"
+    )
+
+    wf_show = workflow_subparsers.add_parser("show", help="Show a workflow session's state")
+    wf_show.add_argument("session_id", help="Session id to inspect")
+    wf_show.add_argument(
+        "--store", default=".skills/workflows", help="Workflow store directory"
+    )
+
     args = parser.parse_args()
 
     # Setup logging based on verbosity
@@ -288,6 +322,8 @@ def main() -> None:
         sys.exit(cmd_eval(args))
     elif args.command == "cost":
         sys.exit(cmd_cost(args))
+    elif args.command == "workflow":
+        sys.exit(cmd_workflow(args))
     else:
         parser.print_help()
 
@@ -967,6 +1003,102 @@ def cmd_cost(args: argparse.Namespace) -> int:
         f"${summary.total_cost:.4f}"
     )
     return 0
+
+
+def cmd_workflow(args: argparse.Namespace) -> int:
+    """Run / resume / inspect durable workflow sessions."""
+    import json as _json
+
+    from skillengine.workflow import Workflow, WorkflowExecutor, WorkflowStore
+
+    sub = getattr(args, "workflow_command", None)
+    if sub is None:
+        console.print("[yellow]usage: skills workflow {run,resume,list,show} ...[/yellow]")
+        return 2
+
+    store = WorkflowStore(args.store)
+
+    if sub == "list":
+        sessions = store.list_sessions()
+        if not sessions:
+            console.print(f"[yellow]No workflow sessions in {args.store}[/yellow]")
+            return 0
+        for sid in sessions:
+            rec = store.load(sid)
+            if rec.context.current_node is None:
+                status = "done"
+            else:
+                status = f"at {rec.context.current_node}"
+            console.print(
+                f"{sid}\t{rec.workflow.id}\t{status}\t"
+                f"history={len(rec.context.history)}"
+            )
+        return 0
+
+    if sub == "show":
+        try:
+            rec = store.load(args.session_id)
+        except FileNotFoundError:
+            console.print(f"[red]Session {args.session_id!r} not found[/red]")
+            return 2
+        console.print(
+            _json.dumps(
+                {
+                    "session_id": rec.session_id,
+                    "workflow_id": rec.workflow.id,
+                    "current_node": rec.context.current_node,
+                    "state_keys": sorted(rec.context.state.keys()),
+                    "history": [h.to_dict() for h in rec.context.history],
+                },
+                indent=2,
+                default=str,
+            )
+        )
+        return 0
+
+    if sub == "run":
+        path = Path(args.file)
+        if not path.exists():
+            console.print(f"[red]Workflow file not found: {path}[/red]")
+            return 2
+        wf = Workflow.from_dict(_json.loads(path.read_text()))
+        state = _json.loads(args.state) if args.state else None
+        sid = store.create(wf, session_id=args.session_id)
+        executor = WorkflowExecutor(wf, store=store, session_id=sid)
+        try:
+            asyncio.run(executor.run(initial_state=state))
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[red]Workflow failed: {exc}[/red]")
+            console.print(f"Session id: [bold]{sid}[/bold] (resume with `skills workflow resume`)")
+            return 1
+        console.print(f"[green]Workflow completed.[/green] Session id: [bold]{sid}[/bold]")
+        return 0
+
+    if sub == "resume":
+        try:
+            rec = store.load(args.session_id)
+        except FileNotFoundError:
+            console.print(f"[red]Session {args.session_id!r} not found[/red]")
+            return 2
+        if rec.context.current_node is None:
+            console.print(
+                f"[yellow]Session {args.session_id!r} already finished — "
+                f"nothing to resume.[/yellow]"
+            )
+            return 0
+        executor = WorkflowExecutor(
+            rec.workflow, store=store, session_id=rec.session_id
+        )
+        try:
+            asyncio.run(executor.resume(rec.context))
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[red]Resume failed: {exc}[/red]")
+            return 1
+        console.print(f"[green]Resumed and completed.[/green] Session id: {rec.session_id}")
+        return 0
+
+    console.print(f"[red]Unknown workflow subcommand: {sub!r}[/red]")
+    return 2
 
 
 if __name__ == "__main__":

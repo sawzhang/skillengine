@@ -26,6 +26,7 @@ from skillengine.workflow.models import (
     WorkflowContext,
     WorkflowNode,
 )
+from skillengine.workflow.store import WorkflowRecord, WorkflowStore
 
 __all__ = [
     "AgentNode",
@@ -40,4 +41,6 @@ __all__ = [
     "WorkflowError",
     "WorkflowExecutor",
     "WorkflowNode",
+    "WorkflowRecord",
+    "WorkflowStore",
 ]
