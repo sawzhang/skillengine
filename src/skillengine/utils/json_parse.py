@@ -24,7 +24,7 @@ def parse_streaming_json(partial: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         pass
     try:
-        from partial_json_parser import loads as partial_loads
+        from partial_json_parser import loads as partial_loads  # type: ignore[import-untyped]
 
         result = partial_loads(partial)
         if isinstance(result, dict):

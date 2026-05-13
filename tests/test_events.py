@@ -44,7 +44,7 @@ class TestEventBus:
 
         bus.on("test", lambda data: received.append(data))
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", "hello"))
+        asyncio.run(bus.emit("test", "hello"))
         assert received == ["hello"]
 
     def test_on_decorator(self) -> None:
@@ -55,7 +55,7 @@ class TestEventBus:
         def handler(data: str) -> None:
             received.append(data)
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", "world"))
+        asyncio.run(bus.emit("test", "world"))
         assert received == ["world"]
 
     def test_unsubscribe(self) -> None:
@@ -63,11 +63,11 @@ class TestEventBus:
         received: list[str] = []
 
         unsub = bus.on("test", lambda data: received.append(data))
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", "a"))
+        asyncio.run(bus.emit("test", "a"))
         assert received == ["a"]
 
         unsub()
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", "b"))
+        asyncio.run(bus.emit("test", "b"))
         assert received == ["a"]  # handler removed, no "b"
 
     def test_off(self) -> None:
@@ -80,7 +80,7 @@ class TestEventBus:
         bus.on("test", handler)
         bus.off("test", handler)
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", "x"))
+        asyncio.run(bus.emit("test", "x"))
         assert received == []
 
     def test_off_by_source(self) -> None:
@@ -93,7 +93,7 @@ class TestEventBus:
         removed = bus.off_by_source("ext1")
         assert removed == 1
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", None))
+        asyncio.run(bus.emit("test", None))
         assert received == ["ext2"]
 
     def test_clear_specific_event(self) -> None:
@@ -122,7 +122,7 @@ class TestEventBus:
         bus.on("test", lambda d: order.append(1), priority=10)
         bus.on("test", lambda d: order.append(2), priority=20)
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", None))
+        asyncio.run(bus.emit("test", None))
         assert order == [1, 2, 3]
 
     def test_async_handler(self) -> None:
@@ -134,7 +134,7 @@ class TestEventBus:
 
         bus.on("test", async_handler)
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", "async"))
+        asyncio.run(bus.emit("test", "async"))
         assert received == ["async"]
 
     def test_handler_return_values(self) -> None:
@@ -144,7 +144,7 @@ class TestEventBus:
         bus.on("test", lambda d: None, priority=2)  # None is filtered out
         bus.on("test", lambda d: "result_b", priority=3)
 
-        results = asyncio.get_event_loop().run_until_complete(bus.emit("test", None))
+        results = asyncio.run(bus.emit("test", None))
         assert results == ["result_a", "result_b"]
 
     def test_handler_error_does_not_stop_others(self) -> None:
@@ -154,7 +154,7 @@ class TestEventBus:
         bus.on("test", lambda d: 1 / 0, priority=1)  # raises ZeroDivisionError
         bus.on("test", lambda d: received.append("ok"), priority=2)
 
-        asyncio.get_event_loop().run_until_complete(bus.emit("test", None))
+        asyncio.run(bus.emit("test", None))
         assert received == ["ok"]
 
     def test_has_handlers(self) -> None:
@@ -175,7 +175,7 @@ class TestEventBus:
 
     def test_emit_no_handlers(self) -> None:
         bus = EventBus()
-        results = asyncio.get_event_loop().run_until_complete(bus.emit("nope", None))
+        results = asyncio.run(bus.emit("nope", None))
         assert results == []
 
     def test_emit_sync(self) -> None:
@@ -303,7 +303,7 @@ class TestAgentRunnerEvents:
         response = AgentMessage(role="assistant", content="Hi there!")
         runner._call_llm = AsyncMock(return_value=response)
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("hello"))
+        asyncio.run(runner.chat("hello"))
 
         assert "start" in events_received
         assert "end" in events_received
@@ -325,7 +325,7 @@ class TestAgentRunnerEvents:
         response = AgentMessage(role="assistant", content="Done")
         runner._call_llm = AsyncMock(return_value=response)
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("test"))
+        asyncio.run(runner.chat("test"))
 
         assert turns == [("start", 0), ("end", 0)]
 
@@ -361,7 +361,7 @@ class TestAgentRunnerEvents:
         )
         runner._call_llm = AsyncMock(side_effect=[tool_response, final_response])
 
-        result = asyncio.get_event_loop().run_until_complete(runner.chat("delete everything"))
+        result = asyncio.run(runner.chat("delete everything"))
 
         assert result.content == "I cannot do that."
         # The tool should NOT have been actually executed
@@ -413,7 +413,7 @@ class TestAgentRunnerEvents:
 
         runner.engine.execute = mock_execute
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("deploy it"))
+        asyncio.run(runner.chat("deploy it"))
 
         assert len(executed_commands) == 1
         assert executed_commands[0] == "deploy --safe"
@@ -453,7 +453,7 @@ class TestAgentRunnerEvents:
 
         runner.engine.execute = mock_execute
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("show secret"))
+        asyncio.run(runner.chat("show secret"))
 
         tool_msgs = [m for m in runner._conversation if m.role == "tool"]
         assert len(tool_msgs) == 1
@@ -477,7 +477,7 @@ class TestAgentRunnerEvents:
         response = AgentMessage(role="assistant", content="I'm fine!")
         runner._call_llm = AsyncMock(return_value=response)
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("hi"))
+        asyncio.run(runner.chat("hi"))
 
         # The conversation should contain the transformed input
         user_msgs = [m for m in runner._conversation if m.role == "user"]
@@ -501,7 +501,7 @@ class TestAgentRunnerEvents:
         # _call_llm should NOT be called
         runner._call_llm = AsyncMock(side_effect=AssertionError("LLM should not be called"))
 
-        result = asyncio.get_event_loop().run_until_complete(runner.chat("/myhelp"))
+        result = asyncio.run(runner.chat("/myhelp"))
         assert result.content == "Custom help text"
 
     def test_context_transform(self) -> None:
@@ -521,7 +521,7 @@ class TestAgentRunnerEvents:
         response = AgentMessage(role="assistant", content="Ok!")
         runner._call_llm = AsyncMock(return_value=response)
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("test"))
+        asyncio.run(runner.chat("test"))
 
         # _call_llm should have been called with the injected message
         call_args = runner._call_llm.call_args[0][0]
@@ -566,7 +566,7 @@ class TestAgentRunnerEvents:
 
         runner.engine.execute = mock_execute
 
-        asyncio.get_event_loop().run_until_complete(runner.chat("list files"))
+        asyncio.run(runner.chat("list files"))
 
         assert event_log == [
             "input",
@@ -593,7 +593,7 @@ class TestAgentRunnerEvents:
         runner._call_llm = AsyncMock(side_effect=RuntimeError("LLM down"))
 
         with pytest.raises(RuntimeError, match="LLM down"):
-            asyncio.get_event_loop().run_until_complete(runner.chat("test"))
+            asyncio.run(runner.chat("test"))
 
         assert len(end_events) == 1
         assert end_events[0].finish_reason == "error"

@@ -145,7 +145,7 @@ class TestRpcMode:
         mode = RpcMode(output=output)
 
         cmd = {"type": "nonexistent_command", "id": "req-99"}
-        asyncio.get_event_loop().run_until_complete(mode._handle_command(cmd))
+        asyncio.run(mode._handle_command(cmd))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["success"] is False
@@ -169,7 +169,7 @@ class TestRpcMode:
         mode._agent = mock_agent
 
         cmd = {"type": "get_state", "id": "req-5"}
-        asyncio.get_event_loop().run_until_complete(mode._handle_command(cmd))
+        asyncio.run(mode._handle_command(cmd))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["success"] is True
@@ -187,7 +187,7 @@ class TestRpcMode:
         mode._agent = None
 
         cmd = {"type": "get_state", "id": "req-6"}
-        asyncio.get_event_loop().run_until_complete(mode._handle_command(cmd))
+        asyncio.run(mode._handle_command(cmd))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["success"] is True
@@ -202,7 +202,7 @@ class TestRpcMode:
         mode = RpcMode(output=output)
 
         cmd = {"type": "bad_command"}
-        asyncio.get_event_loop().run_until_complete(mode._handle_command(cmd))
+        asyncio.run(mode._handle_command(cmd))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["success"] is False

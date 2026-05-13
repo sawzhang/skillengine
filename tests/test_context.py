@@ -108,7 +108,7 @@ class TestEstimateMessageTokens:
 
 class TestSlidingWindowCompactor:
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_no_compaction_needed(self):
         compactor = SlidingWindowCompactor(max_turns=10)
@@ -168,7 +168,7 @@ class TestSlidingWindowCompactor:
 
 class TestTokenBudgetCompactor:
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_no_compaction_needed(self):
         compactor = TokenBudgetCompactor()
@@ -230,7 +230,7 @@ class TestTokenBudgetCompactor:
 
 class TestContextManager:
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_budget_tokens(self):
         mgr = ContextManager(context_window=100_000, reserve_tokens=4096)
@@ -305,7 +305,7 @@ class TestAgentRunnerContextIntegration:
     """Test that AgentRunner uses ContextManager and ModelRegistry."""
 
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def _make_runner(self, **kwargs):
         from unittest.mock import MagicMock

@@ -144,14 +144,14 @@ class TestActionParsing:
 
 class TestActionExecution:
     def test_execute_action_success(self, engine: SkillsEngine) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             engine.execute_action("tool", "greet", ["Alice"])
         )
         assert result.success
         assert "Hello, Alice!" in result.output
 
     def test_execute_action_no_args(self, engine: SkillsEngine) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             engine.execute_action("tool", "greet")
         )
         assert result.success
@@ -160,7 +160,7 @@ class TestActionExecution:
     def test_execute_action_json_output(self, engine: SkillsEngine) -> None:
         import json
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             engine.execute_action("tool", "info")
         )
         assert result.success
@@ -168,21 +168,21 @@ class TestActionExecution:
         assert data["status"] == "ok"
 
     def test_execute_action_failure(self, engine: SkillsEngine) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             engine.execute_action("tool", "fail")
         )
         assert not result.success
         assert result.exit_code == 1
 
     def test_execute_action_skill_not_found(self, engine: SkillsEngine) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             engine.execute_action("nonexistent", "greet")
         )
         assert not result.success
         assert "not found" in result.error.lower()
 
     def test_execute_action_action_not_found(self, engine: SkillsEngine) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             engine.execute_action("tool", "nonexistent")
         )
         assert not result.success
@@ -196,7 +196,7 @@ class TestActionCommandRouting:
         registry.sync_from_skills(engine.filter_skills())
 
         # /tool with no args → show actions
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/tool")
         )
         assert result.handled
@@ -208,7 +208,7 @@ class TestActionCommandRouting:
         registry.sync_from_skills(engine.filter_skills())
 
         # /tool greet Alice → direct execution, no LLM
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/tool", "greet Alice")
         )
         assert result.handled
@@ -221,7 +221,7 @@ class TestActionCommandRouting:
         registry.sync_from_skills(engine.filter_skills())
 
         # /tool help me with something → not an action, fall to LLM
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/tool", "help me with something")
         )
         assert not result.handled
@@ -233,7 +233,7 @@ class TestActionCommandRouting:
         registry.sync_from_skills(engine.filter_skills())
 
         # /plain anything → always LLM
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/plain", "do something")
         )
         assert not result.handled
@@ -243,7 +243,7 @@ class TestActionCommandRouting:
         registry = CommandRegistry(engine)
         registry.sync_from_skills(engine.filter_skills())
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/tool", "fail")
         )
         assert result.error

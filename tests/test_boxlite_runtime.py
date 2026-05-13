@@ -319,7 +319,7 @@ class TestBoxLiteRuntimeAbort:
         self, runtime: BoxLiteRuntime, mock_box: AsyncMock
     ) -> None:
         # Make execution.wait() block until we cancel it
-        never_done: asyncio.Future[MagicMock] = asyncio.get_event_loop().create_future()
+        never_done: asyncio.Future[MagicMock] = asyncio.get_running_loop().create_future()
         execution = AsyncMock()
         execution.wait = AsyncMock(return_value=never_done)
         execution.kill = AsyncMock()

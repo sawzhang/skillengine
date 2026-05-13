@@ -75,7 +75,7 @@ class TestJsonMode:
         events = [_make_stream_event(type="text_delta", content="Hello")]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "hi"))
+        asyncio.run(mode.run(agent, "hi"))
 
         lines = output.getvalue().strip().split("\n")
         assert len(lines) == 1
@@ -96,7 +96,7 @@ class TestJsonMode:
         ]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "hello"))
+        asyncio.run(mode.run(agent, "hello"))
 
         lines = output.getvalue().strip().split("\n")
         assert len(lines) == 3
@@ -119,7 +119,7 @@ class TestJsonMode:
         ]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "run ls"))
+        asyncio.run(mode.run(agent, "run ls"))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["tool_name"] == "execute"
@@ -133,7 +133,7 @@ class TestJsonMode:
         events = [_make_stream_event(type="turn_start", turn=2)]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "test"))
+        asyncio.run(mode.run(agent, "test"))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["turn"] == 2
@@ -146,7 +146,7 @@ class TestJsonMode:
         events = [_make_stream_event(type="error", error="something broke")]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "test"))
+        asyncio.run(mode.run(agent, "test"))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["error"] == "something broke"
@@ -159,7 +159,7 @@ class TestJsonMode:
         events = [_make_stream_event(type="done", finish_reason="complete")]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "test"))
+        asyncio.run(mode.run(agent, "test"))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["finish_reason"] == "complete"
@@ -178,7 +178,7 @@ class TestJsonMode:
         ]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "test"))
+        asyncio.run(mode.run(agent, "test"))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["args_delta"] == '{"cmd'
@@ -197,7 +197,7 @@ class TestJsonMode:
         ]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "test"))
+        asyncio.run(mode.run(agent, "test"))
 
         parsed = json.loads(output.getvalue().strip())
         assert parsed["parsed_args"] == {"command": "ls"}
@@ -210,7 +210,7 @@ class TestJsonMode:
         events = [_make_stream_event(type="text_delta", content="hi")]
         agent = _make_mock_agent(events)
 
-        asyncio.get_event_loop().run_until_complete(mode.run(agent, "test"))
+        asyncio.run(mode.run(agent, "test"))
 
         parsed = json.loads(output.getvalue().strip())
         assert "tool_name" not in parsed

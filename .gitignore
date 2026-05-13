@@ -42,3 +42,9 @@ demo_*
 
 # Auto-generated version file (hatch-vcs)
 src/skillengine/_version.py
+
+# Local development scripts (may contain credentials)
+scripts/
+
+# Ghost package guard (historical artifact, never re-add)
+src/skillkit/

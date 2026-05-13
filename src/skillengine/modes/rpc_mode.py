@@ -113,6 +113,7 @@ class RpcMode:
                     return
                 self._is_streaming = True
                 try:
+                    assert self._agent is not None
                     async for event in self._agent.chat_stream_events(message):
                         self._send_event(event)
                 finally:
@@ -212,7 +213,7 @@ class RpcMode:
         self._agent = agent
         self._running = True
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
         await loop.connect_read_pipe(lambda: protocol, self._input)

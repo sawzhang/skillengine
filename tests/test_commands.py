@@ -33,7 +33,7 @@ def registry(engine: SkillsEngine) -> CommandRegistry:
 
 class TestBuiltinCommands:
     def test_quit_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/quit")
         )
         assert result.handled
@@ -41,33 +41,33 @@ class TestBuiltinCommands:
         assert "Goodbye" in result.output
 
     def test_exit_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/exit")
         )
         assert registry.should_quit
 
     def test_q_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/q")
         )
         assert registry.should_quit
 
     def test_clear_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/clear")
         )
         assert result.handled
         assert "cleared" in result.output.lower()
 
     def test_skills_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/skills")
         )
         assert result.handled
         assert "skills" in result.output.lower()
 
     def test_help_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/help")
         )
         assert result.handled
@@ -78,14 +78,14 @@ class TestBuiltinCommands:
         assert "/reload" in result.output
 
     def test_reload_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/reload")
         )
         assert result.handled
         assert "Reloaded" in result.output
 
     def test_unknown_command(self, registry: CommandRegistry) -> None:
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/nonexistent")
         )
         assert not result.handled
@@ -140,7 +140,7 @@ class TestSyncFromSkills:
             ),
         )
         registry.sync_from_skills([skill])
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/pdf", "myfile.txt")
         )
         assert not result.handled
@@ -171,7 +171,7 @@ class TestSyncFromPrompts:
         )
         loader = PromptTemplateLoader()
         registry.sync_from_prompts([template], loader)
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/review", "security")
         )
         assert not result.handled
@@ -231,7 +231,7 @@ class TestAsyncHandler:
             return CommandResult(output="async done")
 
         registry.register("/async-cmd", async_handler, "Async command")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/async-cmd")
         )
         assert result.output == "async done"
@@ -241,7 +241,7 @@ class TestAsyncHandler:
             raise ValueError("oops")
 
         registry.register("/bad", bad_handler, "Bad command")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             registry.dispatch("/bad")
         )
         assert "oops" in result.error

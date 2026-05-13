@@ -38,8 +38,68 @@ jobs:
       - name: Mypy
         run: uv run mypy src/
 
+  test-fast:
+    # Fast PR feedback: run a focused core subset on a single Python version.
+    # Triggered for pull requests only; master pushes go through the full matrix below.
+    name: Test (fast, Python 3.12)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --dev --python 3.12
+
+      - name: Run core test subset
+        run: |
+          uv run pytest -q --tb=short --junitxml=test-results.xml \
+            tests/test_engine.py \
+            tests/test_events.py \
+            tests/test_context.py \
+            tests/test_context_files.py \
+            tests/test_config.py \
+            tests/test_definition.py \
+            tests/test_model_registry.py \
+            tests/test_loader.py \
+            tests/test_filters.py \
+            tests/test_adapters.py \
+            tests/test_adapter_registry.py \
+            tests/test_cross_provider.py \
+            tests/test_tools.py \
+            tests/test_tool_dispatcher.py \
+            tests/test_action_tool_dispatch.py \
+            tests/test_extension_tool_dispatch.py \
+            tests/test_actions.py \
+            tests/test_skill_tool.py \
+            tests/test_commands.py \
+            tests/test_extensions.py \
+            tests/test_cache.py \
+            tests/test_prompts.py \
+            tests/test_partial_json.py \
+            tests/test_registry.py \
+            tests/test_cli.py
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: test-results-fast
+          path: test-results.xml
+
   test:
-    name: Test (Python ${{ matrix.python-version }})
+    # Full matrix: only on master branch pushes (and tag releases).
+    name: Test (full, Python ${{ matrix.python-version }})
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -74,7 +134,13 @@ jobs:
   build:
     name: Build Package
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, test-fast]
+    # Run if lint passed and at least one of the test jobs succeeded
+    # (test-fast on PRs, test on master pushes — the other is skipped).
+    if: |
+      always() &&
+      needs.lint.result == 'success' &&
+      (needs.test.result == 'success' || needs.test-fast.result == 'success')
     steps:
       - uses: actions/checkout@v5
 

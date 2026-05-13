@@ -107,7 +107,7 @@ class TestLLMAdapterStreamEvents:
         engine = SkillsEngine(config=config)
         adapter = MockAdapter(engine)
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(
                 adapter.chat_stream_events([Message(role="user", content="Hi")])
             )
@@ -137,7 +137,7 @@ class TestLLMAdapterStreamEvents:
         engine = SkillsEngine(config=config)
         adapter = MockAdapter(engine)
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(
                 adapter.chat_stream_events([Message(role="user", content="list")])
             )
@@ -175,7 +175,7 @@ class TestLLMAdapterStreamEvents:
         engine = SkillsEngine(config=config)
         adapter = MockAdapter(engine)
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(
                 adapter.chat_stream_events([Message(role="user", content="list")])
             )
@@ -201,7 +201,7 @@ class TestLLMAdapterStreamEvents:
         engine = SkillsEngine(config=config)
         adapter = MockAdapter(engine)
 
-        chunks = asyncio.get_event_loop().run_until_complete(
+        chunks = asyncio.run(
             _collect_async_iter(
                 adapter.chat_stream([Message(role="user", content="Hi")])
             )
@@ -247,7 +247,7 @@ class TestAgentRunnerStreamEvents:
 
         runner._call_llm_stream = mock_stream
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(runner.chat_stream_events("hi"))
         )
 
@@ -282,7 +282,7 @@ class TestAgentRunnerStreamEvents:
 
         runner._call_llm_stream = mock_stream
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(runner.chat_stream_events("think"))
         )
 
@@ -331,7 +331,7 @@ class TestAgentRunnerStreamEvents:
 
         runner.engine.execute = mock_execute
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(runner.chat_stream_events("list files"))
         )
 
@@ -382,7 +382,7 @@ class TestAgentRunnerStreamEvents:
 
         runner._call_llm_stream = mock_stream
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(runner.chat_stream_events("do it"))
         )
 
@@ -404,7 +404,7 @@ class TestAgentRunnerStreamEvents:
 
         runner._call_llm_stream = mock_stream
 
-        chunks = asyncio.get_event_loop().run_until_complete(
+        chunks = asyncio.run(
             _collect_async_iter(runner.chat_stream("test"))
         )
 
@@ -422,7 +422,7 @@ class TestAgentRunnerStreamEvents:
 
         runner._call_llm_stream = mock_stream
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(runner.chat_stream_events("test"))
         )
 
@@ -443,7 +443,7 @@ class TestAgentRunnerStreamEvents:
 
         events: list[StreamEvent] = []
         with pytest.raises(RuntimeError, match="LLM connection lost"):
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 _collect_async_iter_safe(runner.chat_stream_events("test"), events)
             )
 
@@ -488,7 +488,7 @@ class TestAgentRunnerStreamEvents:
 
         runner.engine.execute = mock_execute
 
-        events = asyncio.get_event_loop().run_until_complete(
+        events = asyncio.run(
             _collect_async_iter(runner.chat_stream_events("list"))
         )
 
@@ -508,7 +508,7 @@ class TestAgentRunnerStreamEvents:
 
         runner._call_llm_stream = mock_stream
 
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             _collect_async_iter(runner.chat_stream_events("hello"))
         )
 

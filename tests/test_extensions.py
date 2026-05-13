@@ -170,7 +170,7 @@ class TestExtensionManager:
         manager._register_hook(SKILL_LOADED, handler_b, "ext-b", priority=10)
         manager._register_hook(SKILL_LOADED, handler_a, "ext-a", priority=1)
 
-        emit_results = asyncio.get_event_loop().run_until_complete(
+        emit_results = asyncio.run(
             manager.emit(SKILL_LOADED, name="test")
         )
         assert results == ["a", "b"]  # a has lower priority, runs first
@@ -181,7 +181,7 @@ class TestExtensionManager:
             return "async_result"
 
         manager._register_hook("test_event", async_handler, "ext", priority=0)
-        results = asyncio.get_event_loop().run_until_complete(
+        results = asyncio.run(
             manager.emit("test_event")
         )
         assert results == ["async_result"]

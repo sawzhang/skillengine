@@ -103,6 +103,8 @@ disallow_untyped_defs = false
 disallow_untyped_calls = false
 
 [[tool.mypy.overrides]]
+# Modules with relaxed typing — third-party SDK boundaries, dynamic dispatch, or
+# in-progress refactors. Goal: shrink this list as code is hardened.
 module = [
     "skillengine.agent",
     "skillengine.session.*",
@@ -110,16 +112,12 @@ module = [
     "skillengine.runtime.*",
     "skillengine.adapters.openai",
     "skillengine.extensions.manager",
-    "skillengine.context",
-    "skillengine.cli",
-    "skillengine.transports.*",
     "skillengine.tools.*",
-    "skillengine.modes.*",
-    "skillengine.packages.*",
-    "skillengine.utils.*",
-    "skillengine.web.*",
-    "skillengine.a2a.*",
     "skillengine.harness.*",
+    "skillengine.a2a.*",
+    "skillengine.web.*",
+    "skillengine.transports.*",
+    "skillengine.packages.*",
 ]
 disable_error_code = [
     "assignment",
