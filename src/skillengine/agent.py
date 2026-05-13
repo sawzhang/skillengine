@@ -763,133 +763,44 @@ class AgentRunner:
         content: str | list[TextContent | ImageContent],
     ) -> str | list[dict[str, Any]]:
         """Format message content for the OpenAI API, handling images."""
-        if isinstance(content, str):
-            return content
-        parts: list[dict[str, Any]] = []
-        for block in content:
-            if isinstance(block, TextContent):
-                parts.append({"type": "text", "text": block.text})
-            elif isinstance(block, ImageContent):
-                data_url = f"data:{block.mime_type};base64,{block.data}"
-                parts.append(
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": data_url},
-                    }
-                )
-        return parts if parts else ""
+        from skillengine._message_format import format_content_for_openai
+
+        return format_content_for_openai(content)
 
     def _format_messages(
         self,
         messages: list[AgentMessage],
     ) -> list[dict[str, Any]]:
         """Format messages for the OpenAI API."""
-        formatted = []
+        from skillengine._message_format import format_messages_for_openai
 
-        # Check if current model supports vision
         model_def = self.model_definition
         supports_vision = model_def is not None and "image" in (model_def.input_modalities or [])
-
-        # Add system prompt
-        system_prompt = self.build_system_prompt()
-        if system_prompt:
-            formatted.append(
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                }
-            )
-
-        # Add conversation messages
-        for msg in messages:
-            if msg.role == "tool":
-                content = msg.text_content if not isinstance(msg.content, str) else msg.content
-                formatted.append(
-                    {
-                        "role": "tool",
-                        "content": content,
-                        "tool_call_id": msg.tool_call_id,
-                    }
-                )
-            elif msg.tool_calls:
-                content = (
-                    (msg.text_content or None)
-                    if not isinstance(msg.content, str)
-                    else (msg.content or None)
-                )
-                formatted.append(
-                    {
-                        "role": "assistant",
-                        "content": content,
-                        "tool_calls": [
-                            {
-                                "id": tc["id"],
-                                "type": "function",
-                                "function": {
-                                    "name": tc["name"],
-                                    "arguments": tc["arguments"],
-                                },
-                            }
-                            for tc in msg.tool_calls
-                        ],
-                    }
-                )
-            elif msg.has_images and supports_vision:
-                # Multi-modal message with images
-                formatted.append(
-                    {
-                        "role": msg.role,
-                        "content": self._format_content_for_openai(msg.content),
-                    }
-                )
-            else:
-                content = msg.text_content if not isinstance(msg.content, str) else msg.content
-                formatted.append(
-                    {
-                        "role": msg.role,
-                        "content": content,
-                    }
-                )
-
-        return formatted
+        return format_messages_for_openai(
+            messages,
+            system_prompt=self.build_system_prompt(),
+            supports_vision=supports_vision,
+        )
 
     def _convert_to_adapter_messages(
         self,
         messages: list[AgentMessage],
     ) -> list[Any]:
         """Convert AgentMessages to adapter Message format."""
-        from skillengine.adapters.base import Message
+        from skillengine._message_format import convert_to_adapter_messages
 
-        result: list[Message] = []
-        for msg in messages:
-            metadata: dict[str, Any] = dict(msg.metadata) if msg.metadata else {}
-            if msg.tool_call_id:
-                metadata["tool_call_id"] = msg.tool_call_id
-            if msg.tool_calls:
-                metadata["tool_calls"] = msg.tool_calls
-            if msg.name:
-                metadata["name"] = msg.name
-            result.append(Message(role=msg.role, content=msg.content, metadata=metadata))
-        return result
+        return convert_to_adapter_messages(messages)
 
     def _adapter_response_to_agent_message(
         self,
         response: Any,
     ) -> AgentMessage:
         """Convert an adapter AgentResponse to an AgentMessage."""
-        token_usage = response.token_usage or TokenUsage()
-        self._cumulative_usage += token_usage
+        from skillengine._message_format import build_assistant_message_from_response
 
-        return AgentMessage(
-            role="assistant",
-            content=response.content,
-            tool_calls=response.tool_calls or [],
-            token_usage=token_usage,
-            metadata={
-                "finish_reason": response.finish_reason or "",
-                "usage": response.usage or {},
-            },
-        )
+        msg, token_usage = build_assistant_message_from_response(response)
+        self._cumulative_usage += token_usage
+        return msg
 
     async def _call_llm(
         self,

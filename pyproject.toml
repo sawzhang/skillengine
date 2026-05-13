@@ -113,6 +113,7 @@ disallow_untyped_calls = false
 # in-progress refactors. Goal: shrink this list as code is hardened.
 module = [
     "skillengine.agent",
+    "skillengine._message_format",
     "skillengine.session.*",
     "skillengine.memory.*",
     "skillengine.runtime.*",
