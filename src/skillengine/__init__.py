@@ -230,6 +230,20 @@ from skillengine.harness import HarnessConfig, HarnessReport, HarnessRunner
 
 # Optimizer (self-improving skill loop)
 from skillengine.optimizer import OptimizationReport, OptimizerConfig, SkillOptimizer
+from skillengine.workflow import (
+    AgentNode,
+    BranchNode,
+    CheckpointNode,
+    NodeResult,
+    ParallelNode,
+    RetryNode,
+    ToolNode,
+    Workflow,
+    WorkflowContext,
+    WorkflowError,
+    WorkflowExecutor,
+    WorkflowNode,
+)
 
 try:
     from skillengine._version import __version__
@@ -434,4 +448,17 @@ __all__ = [
     "LLMJudgeScorer",
     "builtin_suite",
     "list_builtin_suites",
+    # Workflow DAG (FLOW-1)
+    "Workflow",
+    "WorkflowContext",
+    "WorkflowExecutor",
+    "WorkflowNode",
+    "WorkflowError",
+    "NodeResult",
+    "AgentNode",
+    "ToolNode",
+    "BranchNode",
+    "ParallelNode",
+    "RetryNode",
+    "CheckpointNode",
 ]
