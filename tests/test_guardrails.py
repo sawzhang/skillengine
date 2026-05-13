@@ -346,7 +346,7 @@ async def test_agent_runner_add_guardrails_attaches_manager() -> None:
     manager = runner.add_guardrails([pii])
     assert manager is not None
     assert runner.guardrails is manager
-    assert pii in manager.list()
+    assert pii in manager.all()
 
     # Verify INPUT event flow.
     results = await runner.events.emit(INPUT, InputEvent(user_input="email me a@b.co"))

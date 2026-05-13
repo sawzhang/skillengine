@@ -70,6 +70,7 @@ async def setup_memory(
     # 4. Register tools
     tools = build_memory_tools(state)
     for tool_info in tools:
+        assert tool_info.handler is not None
         ext_manager._register_tool(
             name=tool_info.name,
             handler=tool_info.handler,

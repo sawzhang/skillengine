@@ -112,12 +112,7 @@ disallow_untyped_calls = false
 # Modules with relaxed typing — third-party SDK boundaries, dynamic dispatch, or
 # in-progress refactors. Goal: shrink this list as code is hardened.
 module = [
-    "skillengine.agent",
     "skillengine._message_format",
-    "skillengine.session.*",
-    "skillengine.memory.*",
-    "skillengine.runtime.*",
-    "skillengine.adapters.openai",
     "skillengine.extensions.manager",
     "skillengine.tools.*",
     "skillengine.harness.*",

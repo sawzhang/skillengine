@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -233,7 +234,7 @@ class CostTracker:
 # ---------------------------------------------------------------------------
 
 
-def _group_key_fn(group_by: str):  # noqa: ANN202 - returns a closure
+def _group_key_fn(group_by: str) -> Callable[[CostEntry], str]:
     if group_by == "model":
         return lambda e: e.model or "<unknown>"
     if group_by == "skill":

@@ -151,15 +151,19 @@ class InMemoryTransport(Transport):
     backbone of our MCP client unit tests.
     """
 
-    def __init__(self, inbound: asyncio.Queue, outbound: asyncio.Queue) -> None:
+    def __init__(
+        self,
+        inbound: asyncio.Queue[dict[str, Any]],
+        outbound: asyncio.Queue[dict[str, Any]],
+    ) -> None:
         self._inbound = inbound
         self._outbound = outbound
         self._closed = False
 
     @classmethod
     def pair(cls) -> tuple[InMemoryTransport, InMemoryTransport]:
-        a_to_b: asyncio.Queue = asyncio.Queue()
-        b_to_a: asyncio.Queue = asyncio.Queue()
+        a_to_b: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        b_to_a: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         client = cls(inbound=b_to_a, outbound=a_to_b)
         server = cls(inbound=a_to_b, outbound=b_to_a)
         return client, server

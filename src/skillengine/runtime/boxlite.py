@@ -7,9 +7,10 @@ import uuid
 from enum import Enum
 
 from skillengine.runtime.base import ExecutionResult, OutputCallback, SkillRuntime
+from skillengine.runtime.subprocess_streaming import TimerLike
 
 try:
-    import boxlite
+    import boxlite  # type: ignore[import-not-found]
 except ImportError as e:
     raise ImportError(
         "BoxLite SDK is required for BoxLiteRuntime. "
@@ -226,7 +227,7 @@ class BoxLiteRuntime(SkillRuntime):
         self,
         box: boxlite.Box,
         command: str,
-        timer: object,
+        timer: TimerLike,
         timeout: float,
         on_output: OutputCallback | None,
         abort_signal: asyncio.Event | None,
@@ -325,7 +326,7 @@ class BoxLiteRuntime(SkillRuntime):
     def _map_result(
         self,
         box_result: boxlite.ExecResult,
-        timer: object,
+        timer: TimerLike,
     ) -> ExecutionResult:
         """Map BoxLite ExecResult to SkillEngine ExecutionResult."""
         stdout = self._truncate(box_result.stdout or "")

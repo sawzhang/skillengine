@@ -74,7 +74,7 @@ class MemoryHooks:
                 await self.client.add_message(
                     self.state.session_id,
                     msg.role,
-                    msg.content,
+                    msg.content if isinstance(msg.content, str) else str(msg.content),
                 )
 
         self._synced_message_count = len(conversation)
@@ -94,7 +94,7 @@ class MemoryHooks:
                     await self.client.add_message(
                         self.state.session_id,
                         msg.role,
-                        msg.content,
+                        msg.content if isinstance(msg.content, str) else str(msg.content),
                     )
 
             self._synced_message_count = len(conversation)

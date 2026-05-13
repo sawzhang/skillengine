@@ -137,7 +137,12 @@ class Span:
     def __enter__(self) -> Span:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: Any,
+    ) -> None:
         if exc is not None:
             self.record_exception(exc)
         self.end()

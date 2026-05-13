@@ -142,7 +142,7 @@ class GuardrailManager:
         for g in guardrails:
             self.add(g)
 
-    def list(self) -> list[Guardrail]:
+    def all(self) -> list[Guardrail]:
         return list(self._guardrails)
 
     def clear(self) -> None:

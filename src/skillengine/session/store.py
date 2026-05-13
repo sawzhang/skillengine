@@ -96,7 +96,7 @@ def _deserialize_entry(line: str) -> SessionEntry | SessionHeader:
 
     field_names = {f.name for f in dataclasses.fields(cls)}
     filtered = {k: v for k, v in data.items() if k in field_names}
-    return cls(**filtered)  # type: ignore[return-value]
+    return cls(**filtered)
 
 
 # ---------------------------------------------------------------------------

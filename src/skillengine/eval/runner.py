@@ -190,7 +190,7 @@ class EvalRunner:
 def _ensure_async(fn: TargetFn) -> Callable[[Any], Awaitable[Any]]:
     """Wrap a sync target so it can be awaited."""
     if inspect.iscoroutinefunction(fn):
-        return fn  # type: ignore[return-value]
+        return fn
 
     async def _async(x: Any) -> Any:
         result = fn(x)

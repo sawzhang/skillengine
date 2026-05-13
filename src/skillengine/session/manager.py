@@ -378,6 +378,7 @@ class SessionManager:
 
             # Clone entry with remapped ids.  We use a simple approach:
             # copy all fields and replace id / parent_id.
+            clone: SessionEntry
             if isinstance(entry, SessionMessageEntry):
                 clone = SessionMessageEntry(
                     id=new_id,

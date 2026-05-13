@@ -31,7 +31,7 @@ import textwrap
 from typing import Any
 
 from skillengine.runtime.base import ExecutionResult, OutputCallback, SkillRuntime
-from skillengine.runtime.subprocess_streaming import collect_subprocess_streaming
+from skillengine.runtime.subprocess_streaming import TimerLike, collect_subprocess_streaming
 
 # Sentinel for "result not set by user code"
 _UNSET = object()
@@ -437,8 +437,8 @@ class CodeModeRuntime(SkillRuntime):
 
             if abort_signal is not None:
                 # Run with abort watching
-                exec_future = loop.run_in_executor(None, _exec)
-                abort_future = asyncio.ensure_future(abort_signal.wait())
+                exec_future: asyncio.Future[Any] = loop.run_in_executor(None, _exec)
+                abort_future: asyncio.Future[Any] = asyncio.ensure_future(abort_signal.wait())
 
                 done, pending = await asyncio.wait(
                     [exec_future, abort_future],
@@ -579,7 +579,7 @@ if result is not _UNSET:
     async def _collect_simple(
         self,
         process: asyncio.subprocess.Process,
-        timer: object,
+        timer: TimerLike,
         timeout: float,
     ) -> ExecutionResult:
         """Fast path: collect subprocess output using communicate()."""
@@ -616,7 +616,7 @@ if result is not _UNSET:
     async def _collect_streaming(
         self,
         process: asyncio.subprocess.Process,
-        timer: object,
+        timer: TimerLike,
         timeout: float,
         on_output: OutputCallback | None,
         abort_signal: asyncio.Event | None,

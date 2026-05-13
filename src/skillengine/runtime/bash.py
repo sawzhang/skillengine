@@ -8,7 +8,7 @@ import asyncio
 import os
 
 from skillengine.runtime.base import ExecutionResult, OutputCallback, SkillRuntime
-from skillengine.runtime.subprocess_streaming import collect_subprocess_streaming
+from skillengine.runtime.subprocess_streaming import TimerLike, collect_subprocess_streaming
 
 
 class BashRuntime(SkillRuntime):
@@ -106,7 +106,7 @@ class BashRuntime(SkillRuntime):
     async def _collect_output(
         self,
         process: asyncio.subprocess.Process,
-        timer: object,
+        timer: TimerLike,
         timeout: float,
         on_output: OutputCallback | None,
         abort_signal: asyncio.Event | None,
@@ -138,7 +138,7 @@ class BashRuntime(SkillRuntime):
     async def _collect_simple(
         self,
         process: asyncio.subprocess.Process,
-        timer: object,
+        timer: TimerLike,
         timeout: float,
         label: str,
     ) -> ExecutionResult:

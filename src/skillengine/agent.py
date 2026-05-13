@@ -18,7 +18,7 @@ import re
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from dotenv import load_dotenv
 
@@ -569,7 +569,7 @@ class AgentRunner:
         if ctx.current_model:
             effective_config.model = ctx.current_model
         if ctx.current_thinking_level and ctx.current_thinking_level != "off":
-            effective_config.thinking_level = ctx.current_thinking_level
+            effective_config.thinking_level = cast(ThinkingLevel, ctx.current_thinking_level)
 
         runner = cls(
             engine=engine or SkillsEngine(),
@@ -819,7 +819,7 @@ class AgentRunner:
             return
         pool.unregister_from_dispatcher(self._dispatcher)
         await pool.aclose()
-        self._mcp_pool = None
+        self._mcp_pool = None  # type: ignore[assignment]
 
     def add_handoffs(self, handoffs: list[Any]) -> list[str]:
         """Register OpenAI-Agents-SDK-style handoffs as dispatcher tools.
@@ -881,10 +881,10 @@ class AgentRunner:
         manager = getattr(self, "_guardrail_manager", None)
         if manager is None:
             return 0
-        count = len(manager.list())
+        count = len(manager.all())
         manager.detach()
         manager.clear()
-        self._guardrail_manager = None
+        self._guardrail_manager = None  # type: ignore[assignment]
         return count
 
     @staticmethod
@@ -1217,7 +1217,7 @@ class AgentRunner:
                 all_tools = original_get_tools()
                 return [t for t in all_tools if t["function"]["name"] in allowed]
 
-            child.get_tools = _filtered_get_tools  # type: ignore[assignment]
+            child.get_tools = _filtered_get_tools  # type: ignore[method-assign]
 
         user_msg = arguments or "Execute this skill."
         response = await child.chat(user_msg)
@@ -1370,7 +1370,11 @@ class AgentRunner:
                     TurnEndEvent(
                         turn=turn,
                         has_tool_calls=bool(response.tool_calls),
-                        content=response.content,
+                        content=(
+                            response.content
+                            if isinstance(response.content, str)
+                            else str(response.content)
+                        ),
                         tool_call_count=len(response.tool_calls),
                     ),
                 )
@@ -1446,7 +1450,12 @@ class AgentRunner:
                     # Build on_output callback for tool_execution_update events
                     _tc_id, _tc_name, _turn = tc_id, tc_name, turn
 
-                    def _on_output(line: str, _tid=_tc_id, _tname=_tc_name, _t=_turn) -> None:
+                    def _on_output(
+                        line: str,
+                        _tid: str = _tc_id,
+                        _tname: str = _tc_name,
+                        _t: int = _turn,
+                    ) -> None:
                         if self.events.has_handlers(TOOL_EXECUTION_UPDATE):
                             # Fire-and-forget in sync context — schedule on event loop
                             try:
@@ -1991,7 +2000,12 @@ class AgentRunner:
                     _tc_id, _tc_name, _turn = tc_id, tc_name, turn
                     _output_events: list[StreamEvent] = []
 
-                    def _on_output(line: str, _tid=_tc_id, _tname=_tc_name, _t=_turn) -> None:
+                    def _on_output(
+                        line: str,
+                        _tid: str = _tc_id,
+                        _tname: str = _tc_name,
+                        _t: int = _turn,
+                    ) -> None:
                         _output_events.append(
                             StreamEvent(
                                 type="tool_output",

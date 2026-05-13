@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from ..tools.registry import ToolDefinition
@@ -91,7 +92,7 @@ class MCPClient:
         cls,
         spec: StdioServerSpec,
         **kwargs: Any,
-    ):
+    ) -> AsyncIterator[MCPClient]:
         """Spawn an MCP server subprocess and yield a started client."""
         transport = await StdioTransport.spawn(spec)
         client = cls(transport, **kwargs)
@@ -103,7 +104,7 @@ class MCPClient:
 
     @classmethod
     @contextlib.asynccontextmanager
-    async def connect(cls, transport: Transport, **kwargs: Any):
+    async def connect(cls, transport: Transport, **kwargs: Any) -> AsyncIterator[MCPClient]:
         """Wrap an arbitrary transport in a started client (test-friendly)."""
         client = cls(transport, **kwargs)
         try:
@@ -201,7 +202,7 @@ class MCPClient:
             )
         return defs
 
-    def _make_handler(self, remote_name: str):
+    def _make_handler(self, remote_name: str) -> Callable[[dict[str, Any]], Awaitable[str]]:
         async def _handler(args: dict[str, Any]) -> str:
             result = await self.call_tool(remote_name, args)
             text = result.text()

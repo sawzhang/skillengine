@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator
 from typing import Any, TypedDict
 
 try:
-    from openai import AsyncOpenAI  # type: ignore[import-not-found]
+    from openai import AsyncOpenAI
 except ImportError:
     raise ImportError(
         "OpenAI adapter requires the 'openai' package. "

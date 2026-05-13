@@ -132,7 +132,7 @@ def extract_json_schema(output_type: Any) -> dict[str, Any]:
             tp = hints.get(f.name, f.type)
             properties[f.name] = _python_type_to_schema(tp)
             has_default = (
-                f.default is not dataclasses.MISSING or f.default_factory is not dataclasses.MISSING  # type: ignore[misc]
+                f.default is not dataclasses.MISSING or f.default_factory is not dataclasses.MISSING
             )
             if not has_default:
                 required.append(f.name)
@@ -270,7 +270,7 @@ def parse_structured(output_type: Any, text: str) -> Any:
     # Pydantic v1
     if hasattr(output_type, "parse_obj"):
         try:
-            return output_type.parse_obj(parsed)  # type: ignore[attr-defined]
+            return output_type.parse_obj(parsed)
         except Exception as exc:
             raise StructuredOutputError(
                 f"Validation failed for {output_type.__name__}: {exc}",
