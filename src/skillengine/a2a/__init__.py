@@ -17,6 +17,16 @@ from skillengine.a2a.discovery import (
     AgentHealthStatus,
     DiscoveryConfig,
 )
+from skillengine.a2a.handoffs import (
+    Handoff,
+    HandoffTarget,
+    InputFilter,
+    a2a_handoff,
+    agent_handoff,
+    callable_handoff,
+    handoff,
+    to_tool_definition,
+)
 from skillengine.a2a.models import A2ATaskRequest, A2ATaskResponse, TaskStatus
 from skillengine.a2a.registry import AgentRegistry, AgentSource, AgentStats, RegisteredAgent
 from skillengine.a2a.router import PerformanceRouter, RouteResult, RoutingConfig
@@ -53,4 +63,13 @@ __all__ = [
     # Coordinator
     "CoordinatorAgent",
     "CoordinatorConfig",
+    # Handoffs (OpenAI Agents SDK / Anthropic A2A draft compat shim)
+    "Handoff",
+    "HandoffTarget",
+    "InputFilter",
+    "handoff",
+    "callable_handoff",
+    "agent_handoff",
+    "a2a_handoff",
+    "to_tool_definition",
 ]

@@ -202,6 +202,54 @@ def main() -> None:
     serve_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     serve_parser.add_argument("--port", type=int, default=8080, help="Port to bind to")
 
+    # Eval command (EVAL-1)
+    eval_parser = subparsers.add_parser("eval", help="Run an eval suite")
+    eval_parser.add_argument(
+        "--suite",
+        default="skill-dsl",
+        help="Built-in suite name (e.g. skill-dsl, smoke) or path to a JSON/JSONL dataset",
+    )
+    eval_parser.add_argument(
+        "--list", action="store_true", help="List built-in suites and exit"
+    )
+    eval_parser.add_argument(
+        "--tag", action="append", dest="tags", help="Run only cases with this tag (repeatable)"
+    )
+    eval_parser.add_argument(
+        "--id", action="append", dest="ids", help="Run only cases with this id (repeatable)"
+    )
+    eval_parser.add_argument(
+        "--concurrency", type=int, default=1, help="Max concurrent cases"
+    )
+    eval_parser.add_argument(
+        "--output", "-o", help="Write the report to this JSON file"
+    )
+    eval_parser.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Stdout format (default: table)",
+    )
+    eval_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Show per-case detail rows"
+    )
+
+    # Cost command (COST-1)
+    cost_parser = subparsers.add_parser("cost", help="Show cost dashboard from a JSONL log")
+    cost_parser.add_argument(
+        "--log", required=True, help="Path to a JSONL cost log (written by CostTracker)"
+    )
+    cost_parser.add_argument(
+        "--group-by",
+        choices=["model", "skill", "session", "turn", "day"],
+        default="model",
+        help="Aggregation key (default: model)",
+    )
+    cost_parser.add_argument(
+        "--format", choices=["table", "json"], default="table", help="Stdout format"
+    )
+    cost_parser.add_argument("--top", type=int, default=20, help="Show top N rows")
+
     args = parser.parse_args()
 
     # Setup logging based on verbosity
@@ -236,6 +284,10 @@ def main() -> None:
         asyncio.run(cmd_chat(args))
     elif args.command == "serve":
         cmd_serve(args)
+    elif args.command == "eval":
+        sys.exit(cmd_eval(args))
+    elif args.command == "cost":
+        sys.exit(cmd_cost(args))
     else:
         parser.print_help()
 
@@ -774,6 +826,147 @@ def cmd_serve(args: argparse.Namespace) -> None:
             "[red]Web UI requires the 'web' extra. Install with: pip install skillengine[web][/red]"
         )
         sys.exit(1)
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    """Run an eval suite and print a leaderboard. Returns process exit code."""
+    import asyncio
+
+    from skillengine.eval import (
+        EvalDataset,
+        EvalReport,
+        EvalRunner,
+        builtin_suite,
+        list_builtin_suites,
+    )
+    from skillengine.eval.scorers import ContainsScorer, ExactMatchScorer
+
+    if args.list:
+        console.print("[bold]Built-in eval suites[/bold]")
+        for name in list_builtin_suites():
+            console.print(f"  - {name}")
+        return 0
+
+    suite = args.suite
+    if suite in list_builtin_suites():
+        dataset, scorers, target = builtin_suite(suite)
+    else:
+        path = Path(suite)
+        if not path.exists():
+            console.print(f"[red]Unknown suite: {suite!r}[/red]")
+            console.print(
+                f"Built-in suites: {list_builtin_suites()}. Pass a file path for custom datasets."
+            )
+            return 2
+        if path.suffix == ".jsonl":
+            dataset = EvalDataset.from_jsonl(path)
+        else:
+            dataset = EvalDataset.from_json(path)
+        scorers = [ExactMatchScorer()] if path.suffix == ".jsonl" else [ContainsScorer()]
+        target = lambda x: x  # noqa: E731 - identity target for custom datasets
+
+    if args.tags or args.ids:
+        dataset = dataset.filter(tags=args.tags, ids=args.ids)
+    if not dataset.cases:
+        console.print("[yellow]No cases match the filter; nothing to run.[/yellow]")
+        return 0
+
+    runner = EvalRunner(target, scorers, concurrency=max(1, int(args.concurrency)))
+    report: EvalReport = asyncio.run(runner.run(dataset))
+
+    if args.output:
+        report.save(args.output)
+
+    if args.format == "json":
+        import json
+
+        console.print(json.dumps(report.to_dict(), default=str, indent=2))
+    else:
+        try:
+            from rich.table import Table
+
+            table = Table(title=f"{report.dataset} — leaderboard")
+            table.add_column("Case", style="cyan", no_wrap=True)
+            table.add_column("Status", style="bold")
+            table.add_column("Score", justify="right")
+            table.add_column("Reason", style="dim")
+            shown = report.cases if args.verbose else [r for r in report.cases if not r.passed]
+            for r in shown:
+                status = "[green]PASS[/green]" if r.passed else "[red]FAIL[/red]"
+                reasons = "; ".join(s.reason for s in r.scores if s.reason)
+                if r.error:
+                    reasons = f"error: {r.error}"
+                table.add_row(r.case_id, status, f"{r.score:.2f}", reasons[:120])
+            console.print(table)
+        except ImportError:  # pragma: no cover
+            for r in report.cases:
+                console.print(
+                    f"{'PASS' if r.passed else 'FAIL'}  {r.case_id}  score={r.score:.2f}"
+                )
+        console.print(f"\n[bold]{report.summary()}[/bold]")
+
+    # Non-zero exit if any case failed.
+    return 0 if report.failed == 0 else 1
+
+
+def cmd_cost(args: argparse.Namespace) -> int:
+    """Render a cost dashboard from a JSONL log file."""
+    from skillengine.cost import CostTracker
+
+    path = Path(args.log)
+    if not path.exists():
+        console.print(f"[red]Cost log not found: {path}[/red]")
+        return 2
+
+    tracker = CostTracker.from_jsonl(path)
+    if not tracker.entries:
+        console.print(f"[yellow]No entries in {path}[/yellow]")
+        return 0
+
+    summary = tracker.summary(group_by=args.group_by)
+    rows = summary.rows[: max(1, int(args.top))]
+
+    if args.format == "json":
+        import json as _json
+
+        out = summary.to_dict()
+        out["rows"] = rows
+        console.print(_json.dumps(out, default=str, indent=2))
+        return 0
+
+    try:
+        from rich.table import Table
+
+        table = Table(title=f"Cost by {summary.group_by} (entries={summary.entry_count})")
+        table.add_column(summary.group_by, style="cyan", no_wrap=True)
+        table.add_column("Calls", justify="right")
+        table.add_column("In tok", justify="right")
+        table.add_column("Out tok", justify="right")
+        table.add_column("Total tok", justify="right")
+        table.add_column("Cost $", justify="right", style="bold")
+        for r in rows:
+            table.add_row(
+                str(r["key"]),
+                str(r["entry_count"]),
+                f"{r['input_tokens']:,}",
+                f"{r['output_tokens']:,}",
+                f"{r['total_tokens']:,}",
+                f"{r['total_cost']:.4f}",
+            )
+        console.print(table)
+    except ImportError:  # pragma: no cover
+        for r in rows:
+            console.print(
+                f"{r['key']:30s}  calls={r['entry_count']:4d}  "
+                f"tokens={r['total_tokens']:>10,}  cost=${r['total_cost']:.4f}"
+            )
+
+    console.print(
+        f"\n[bold]Total:[/bold] {summary.entry_count} calls, "
+        f"{summary.total_tokens:,} tokens, "
+        f"${summary.total_cost:.4f}"
+    )
+    return 0
 
 
 if __name__ == "__main__":

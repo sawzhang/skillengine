@@ -318,6 +318,12 @@ class AgentRunner:
         if self.config.load_context_files:
             self._load_context_files()
 
+        # Structured-output directive — set by chat_structured() and cleared
+        # in its ``finally`` block. ``build_system_prompt()`` appends it when
+        # non-None so the directive flows into both ``chat()`` and
+        # ``chat_stream_events()`` without changing those signatures.
+        self._structured_directive: str | None = None
+
     # ------------------------------------------------------------------
     # State delegates to HarnessState
     # ------------------------------------------------------------------
@@ -745,7 +751,11 @@ class AgentRunner:
                 f"</user-invocable-skills>"
             )
 
-        return "\n\n".join(parts)
+        prompt = "\n\n".join(parts)
+        directive = getattr(self, "_structured_directive", None)
+        if directive:
+            prompt = f"{prompt}{directive}" if prompt else directive
+        return prompt
 
     def get_tools(self) -> list[dict[str, Any]]:
         """Get tool definitions for function calling.
@@ -757,6 +767,125 @@ class AgentRunner:
 
         self._refresh_dispatcher_tools()
         return self._dispatcher.get_definitions()
+
+    # ------------------------------------------------------------------
+    # MCP integration (v0.3 MCP-IN-3)
+    # ------------------------------------------------------------------
+
+    @property
+    def mcp_pool(self) -> Any:
+        """Lazily-allocated :class:`MCPConnectionPool` for this agent.
+
+        Returns ``None`` until :meth:`connect_mcp_servers` is called at least
+        once. The pool is owned by the agent and torn down by :meth:`aclose`.
+        """
+        return getattr(self, "_mcp_pool", None)
+
+    async def connect_mcp_servers(
+        self,
+        specs: list[Any] | None = None,
+        *,
+        spec: Any | None = None,
+    ) -> Any:
+        """Connect to one or more MCP servers and register their tools.
+
+        Accepts :class:`MCPServerSpec`, dicts, or URI strings (see
+        :func:`skillengine.mcp.parse_mcp_uri`). Returns the
+        :class:`MCPConnectionPool` so callers can introspect the connections.
+
+        Tools are namespaced ``<server>__<tool>`` and registered with the
+        internal :class:`ToolDispatcher` so they're immediately visible to the
+        LLM on the next turn.
+        """
+        from skillengine.mcp.pool import MCPConnectionPool
+
+        pool = getattr(self, "_mcp_pool", None)
+        if pool is None:
+            pool = MCPConnectionPool()
+            self._mcp_pool = pool
+
+        if spec is not None:
+            await pool.connect(spec)
+        if specs:
+            await pool.connect_all(specs)
+
+        pool.register_with_dispatcher(self._dispatcher)
+        return pool
+
+    async def disconnect_mcp_servers(self) -> None:
+        """Close every MCP client owned by this agent."""
+        pool = getattr(self, "_mcp_pool", None)
+        if pool is None:
+            return
+        pool.unregister_from_dispatcher(self._dispatcher)
+        await pool.aclose()
+        self._mcp_pool = None
+
+    def add_handoffs(self, handoffs: list[Any]) -> list[str]:
+        """Register OpenAI-Agents-SDK-style handoffs as dispatcher tools.
+
+        Each handoff is converted to a :class:`ToolDefinition` and registered
+        with the agent's tool dispatcher. Returns the list of registered tool
+        names so callers can unregister later.
+        """
+        from skillengine.a2a.handoffs import to_tool_definition
+
+        registered: list[str] = []
+        for h in handoffs:
+            td = to_tool_definition(h)
+            definition = {
+                "type": "function",
+                "function": {
+                    "name": td.name,
+                    "description": td.description,
+                    "parameters": td.parameters,
+                },
+            }
+            self._dispatcher.register(td.name, td.handler, definition)
+            registered.append(td.name)
+        tracked = getattr(self, "_handoff_tools", None)
+        if tracked is None:
+            self._handoff_tools = list(registered)
+        else:
+            tracked.extend(registered)
+        return registered
+
+    def remove_handoffs(self) -> int:
+        """Unregister every handoff previously added via :meth:`add_handoffs`."""
+        tracked = getattr(self, "_handoff_tools", None) or []
+        removed = 0
+        for name in tracked:
+            if self._dispatcher.unregister(name):
+                removed += 1
+        self._handoff_tools = []
+        return removed
+
+    def add_guardrails(self, guardrails: list[Any]) -> Any:
+        """Attach guardrails to this agent. Returns the underlying manager."""
+        from skillengine.guardrails import GuardrailManager
+
+        manager = getattr(self, "_guardrail_manager", None)
+        if manager is None:
+            manager = GuardrailManager(self.events)
+            self._guardrail_manager = manager
+        manager.extend(list(guardrails))
+        return manager
+
+    @property
+    def guardrails(self) -> Any:
+        """The :class:`GuardrailManager` for this agent, or ``None``."""
+        return getattr(self, "_guardrail_manager", None)
+
+    def remove_guardrails(self) -> int:
+        """Detach the guardrail manager. Returns the number of removed guardrails."""
+        manager = getattr(self, "_guardrail_manager", None)
+        if manager is None:
+            return 0
+        count = len(manager.list())
+        manager.detach()
+        manager.clear()
+        self._guardrail_manager = None
+        return count
 
     @staticmethod
     def _format_content_for_openai(
@@ -1530,6 +1659,76 @@ class AgentRunner:
                     )
 
                 yield StreamEvent(type="done", finish_reason=finish_reason)
+
+    async def chat_structured(
+        self,
+        user_input: str,
+        output_type: Any,
+        *,
+        reset: bool = False,
+        max_retries: int = 1,
+    ) -> tuple[AgentMessage, Any]:
+        """Send a message and parse the response as ``output_type``.
+
+        Returns a ``(message, value)`` tuple where ``value`` is:
+
+        * a Pydantic model instance (for Pydantic v1/v2 models),
+        * a dataclass instance (for ``@dataclass`` types),
+        * the parsed JSON value (for ``TypedDict`` or raw JSON schemas).
+
+        The implementation is provider-agnostic: it appends a directive to the
+        system prompt instructing the model to emit a single JSON value
+        conforming to a schema derived from ``output_type``, then parses the
+        model's reply. If parsing fails, the agent is given up to
+        ``max_retries`` additional turns to correct itself.
+
+        Args:
+            user_input: The user message to send.
+            output_type: The target type (Pydantic model, dataclass,
+                ``TypedDict``, or a raw JSON-schema ``dict``).
+            reset: Clear the conversation before sending.
+            max_retries: Number of additional retry chats if the first reply
+                cannot be parsed. Each retry sends a corrective message.
+
+        Returns:
+            ``(AgentMessage, parsed_value)``.
+
+        Raises:
+            StructuredOutputError: If no retry produced a valid response.
+        """
+        # Import locally to keep the module-load graph cheap for callers that
+        # never use structured output.
+        from skillengine.typed_output import (
+            StructuredOutputError,
+            build_directive,
+            parse_structured,
+        )
+
+        previous_directive = self._structured_directive
+        self._structured_directive = build_directive(output_type)
+        last_error: StructuredOutputError | None = None
+        try:
+            message = await self.chat(user_input, reset=reset)
+            for attempt in range(max_retries + 1):
+                try:
+                    parsed = parse_structured(output_type, message.text_content)
+                    return message, parsed
+                except StructuredOutputError as exc:
+                    last_error = exc
+                    if attempt >= max_retries:
+                        break
+                    correction = (
+                        "Your previous reply could not be parsed as the required "
+                        f"JSON value: {exc}. Please reply again with only a valid "
+                        "JSON value conforming to the schema above. No prose, "
+                        "no markdown fences."
+                    )
+                    message = await self.chat(correction)
+        finally:
+            self._structured_directive = previous_directive
+
+        assert last_error is not None
+        raise last_error
 
     async def chat_stream_events(
         self,

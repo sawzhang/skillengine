@@ -45,13 +45,16 @@ from skillengine.context import (
     ContextCompactor,
     ContextManager,
     SlidingWindowCompactor,
+    SummarizingCompactor,
     TokenBudgetCompactor,
+    ToolResultTruncator,
     estimate_content_tokens,
     estimate_message_tokens,
     estimate_messages_tokens,
     estimate_tokens,
 )
 from skillengine.context_files import ContextFile, load_context_files
+from skillengine.cost import CostEntry, CostSummary, CostTracker, attach_cost_tracker
 from skillengine.definition import AgentDefinition, RuntimeConfig
 from skillengine.engine import SkillsEngine
 from skillengine.environment import Environment
@@ -128,6 +131,81 @@ from skillengine.models import (
 from skillengine.prompts import PromptTemplate, PromptTemplateLoader
 from skillengine.runtime import BashRuntime, CodeModeRuntime, SkillRuntime
 from skillengine.scheduler import CronExpression, CronJob, CronScheduler
+from skillengine.typed_output import (
+    StructuredOutputError,
+    build_directive,
+    extract_json_payload,
+    extract_json_schema,
+    parse_structured,
+)
+
+# Optional: MCP integration (always available — no extra deps for v0.3)
+try:
+    from skillengine.mcp import (
+        MCPClient,
+        MCPConnectionPool,
+        MCPServer,
+        MCPServerSpec,
+        parse_mcp_uri,
+    )
+except ImportError:  # pragma: no cover - never expected
+    pass
+
+# A2A Handoffs shim (compat with OpenAI Agents SDK / Anthropic A2A draft)
+from skillengine.a2a.handoffs import (
+    Handoff,
+    a2a_handoff,
+    agent_handoff,
+    callable_handoff,
+    handoff,
+)
+
+# Eval harness (EVAL-1)
+from skillengine.eval import (
+    ContainsScorer,
+    EvalCase,
+    EvalCaseResult,
+    EvalDataset,
+    EvalReport,
+    EvalRunner,
+    ExactMatchScorer,
+    LLMJudgeScorer,
+    RegexScorer,
+    Scorer,
+    ScorerResult,
+    StructuredMatchScorer,
+    builtin_suite,
+    list_builtin_suites,
+)
+
+# Guardrails
+from skillengine.guardrails import (
+    CostBudgetGuardrail,
+    Guardrail,
+    GuardrailAction,
+    GuardrailManager,
+    GuardrailResult,
+    GuardrailScope,
+    GuardrailViolation,
+    PIIGuardrail,
+    PromptInjectionGuardrail,
+    TokenBudgetGuardrail,
+)
+
+# Tracing (TRACE-1)
+from skillengine.tracing import (
+    ConsoleSpanExporter,
+    LangSmithSpanExporter,
+    LogfireSpanExporter,
+    OTelSpanExporter,
+    Span,
+    SpanContext,
+    SpanExporter,
+    SpanKind,
+    SpanStatus,
+    Tracer,
+    install_tracer,
+)
 
 # Optional: BoxLite sandbox runtime
 try:
@@ -238,6 +316,8 @@ __all__ = [
     "ContextManager",
     "ContextCompactor",
     "TokenBudgetCompactor",
+    "SummarizingCompactor",
+    "ToolResultTruncator",
     "SlidingWindowCompactor",
     "estimate_tokens",
     "estimate_content_tokens",
@@ -246,6 +326,11 @@ __all__ = [
     # Context Files
     "ContextFile",
     "load_context_files",
+    # Cost dashboard (COST-1)
+    "CostEntry",
+    "CostSummary",
+    "CostTracker",
+    "attach_cost_tracker",
     # Cache
     "get_cache_control_anthropic",
     "get_cache_config_openai",
@@ -293,4 +378,60 @@ __all__ = [
     "SkillOptimizer",
     "OptimizerConfig",
     "OptimizationReport",
+    # Typed / structured output
+    "StructuredOutputError",
+    "build_directive",
+    "extract_json_payload",
+    "extract_json_schema",
+    "parse_structured",
+    # MCP (Model Context Protocol) interop
+    "MCPClient",
+    "MCPConnectionPool",
+    "MCPServer",
+    "MCPServerSpec",
+    "parse_mcp_uri",
+    # A2A handoffs (compat shim with OpenAI Agents SDK / Anthropic A2A draft)
+    "Handoff",
+    "handoff",
+    "callable_handoff",
+    "agent_handoff",
+    "a2a_handoff",
+    # Guardrails
+    "Guardrail",
+    "GuardrailAction",
+    "GuardrailManager",
+    "GuardrailResult",
+    "GuardrailScope",
+    "GuardrailViolation",
+    "PIIGuardrail",
+    "PromptInjectionGuardrail",
+    "TokenBudgetGuardrail",
+    "CostBudgetGuardrail",
+    # Tracing
+    "Span",
+    "SpanContext",
+    "SpanExporter",
+    "SpanKind",
+    "SpanStatus",
+    "Tracer",
+    "install_tracer",
+    "ConsoleSpanExporter",
+    "OTelSpanExporter",
+    "LangSmithSpanExporter",
+    "LogfireSpanExporter",
+    # Eval harness (EVAL-1)
+    "EvalCase",
+    "EvalDataset",
+    "EvalRunner",
+    "EvalCaseResult",
+    "EvalReport",
+    "Scorer",
+    "ScorerResult",
+    "ExactMatchScorer",
+    "ContainsScorer",
+    "RegexScorer",
+    "StructuredMatchScorer",
+    "LLMJudgeScorer",
+    "builtin_suite",
+    "list_builtin_suites",
 ]

@@ -250,25 +250,24 @@ class DockerRuntime(SkillRuntime):
         ...
 ```
 
+## Documentation
+
+The full docs live under [`docs/`](./docs/) in three layers:
+
+- [Concepts](./docs/concepts/) — what things are and why
+- [Cookbook](./docs/cookbook/) — 5 end-to-end recipes
+- [Reference](./docs/reference/index.md) — public API surface
+
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the full technical roadmap. Summary:
+The original P0–P3 milestones (event system, structured streaming, model registry, context pipeline, tool streaming, steering/abort, dynamic adapter registry) have all shipped. The next four releases close the remaining gaps versus mainstream agent SDKs. See [ROADMAP.md](ROADMAP.md) for the full plan.
 
-| Area | Status |
-|------|--------|
-| Event system (lifecycle hooks, tool guards) | Done |
-| Structured stream events (thinking, tools, text) | Done |
-| Model metadata registry (cost, context window, capabilities) | Done |
-| Context management pipeline (compaction, pruning, token budgets) | Done |
-| Tool execution streaming (live output) | Done |
-| Steering and abort controls | Done |
-| Dynamic provider registry (runtime adapter switching) | Done |
-
-Current optimization focus:
-
-- Multi-modal context/token accounting hardening
-- Documentation and implementation status alignment
-- Dependency and typing quality tightening
+| Release | Theme | Headline items |
+|---|---|---|
+| **v0.3** Interop | Show up in the wider ecosystem | MCP client + server, `mcp://` package source, typed/structured output, A2A handoffs compat, 3-layer docs |
+| **v0.4** Production | Observability, validation, regression | Guardrails as first-class abstraction, end-to-end tracing (OTel/LangSmith/Logfire), eval harness + scorers, summarizing compaction, cost dashboard, mypy strict cleanup |
+| **v0.5** Capability | Workflows, browser, marketplace | DAG/durable workflows, Playwright + computer-use tools, signed skill marketplace, secret management, scheduler upgrade |
+| **v1.0** Stability | API freeze + LTS | Public-surface freeze, SemVer commitment, benchmarks regression gates, auto-updated model catalog, Web UI parity with TUI |
 
 ## Development
 
