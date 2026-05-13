@@ -46,6 +46,7 @@ from skillengine.context import (
     ContextManager,
     SlidingWindowCompactor,
     TokenBudgetCompactor,
+    estimate_content_tokens,
     estimate_message_tokens,
     estimate_messages_tokens,
     estimate_tokens,
@@ -239,6 +240,7 @@ __all__ = [
     "TokenBudgetCompactor",
     "SlidingWindowCompactor",
     "estimate_tokens",
+    "estimate_content_tokens",
     "estimate_message_tokens",
     "estimate_messages_tokens",
     # Context Files

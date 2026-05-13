@@ -1,0 +1,22 @@
+{
+  "token_estimation/1k_msgs": {
+    "median_ms": 0.11997949331998825,
+    "p95_ms": 0.13145909179002047
+  },
+  "context_compaction/1k_msgs": {
+    "median_ms": 0.12618745677173138,
+    "p95_ms": 0.13862503692507744
+  },
+  "tool_dispatch/single_call": {
+    "median_ms": 0.00016693957149982452,
+    "p95_ms": 0.00020791776478290558
+  },
+  "event_emit/8_handlers": {
+    "median_ms": 0.0016669509932398796,
+    "p95_ms": 0.0017910497263073921
+  },
+  "skill_load/bundled_dir": {
+    "median_ms": 3.757458529435098,
+    "p95_ms": 4.115666029974818
+  }
+}

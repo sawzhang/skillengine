@@ -87,6 +87,7 @@ jobs:
             tests/test_prompts.py \
             tests/test_partial_json.py \
             tests/test_registry.py \
+            tests/test_telemetry.py \
             tests/test_cli.py
 
       - name: Upload test results
