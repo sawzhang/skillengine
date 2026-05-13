@@ -79,6 +79,28 @@ load_dotenv(override=True)
 logger = get_logger("agent")
 
 
+class _StateAttr:
+    """Descriptor that delegates an ``AgentRunner`` attribute to ``self._state``.
+
+    Replaces 9 hand-written property pairs (~80 lines) with a single small
+    descriptor. Identity is preserved — ``runner._conversation is
+    runner._state.conversation`` still holds.
+    """
+
+    __slots__ = ("name",)
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __get__(self, obj: Any, objtype: Any = None) -> Any:
+        if obj is None:
+            return self
+        return getattr(obj._state, self.name)
+
+    def __set__(self, obj: Any, value: Any) -> None:
+        setattr(obj._state, self.name, value)
+
+
 class AgentAbortedError(Exception):
     """Raised when the agent operation is aborted via ``abort()``."""
 
@@ -297,80 +319,22 @@ class AgentRunner:
             self._load_context_files()
 
     # ------------------------------------------------------------------
-    # Property delegates to HarnessState (backward compatibility)
+    # State delegates to HarnessState
     # ------------------------------------------------------------------
+    # The legacy property-per-field boilerplate has been replaced with a
+    # small descriptor that forwards reads/writes to ``self._state``.
+    # External tests still access ``runner._conversation`` etc. and observe
+    # identical behavior (``runner._conversation is runner._state.conversation``).
 
-    @property
-    def _conversation(self) -> list[AgentMessage]:
-        return self._state.conversation
-
-    @_conversation.setter
-    def _conversation(self, value: list[AgentMessage]) -> None:
-        self._state.conversation = value
-
-    @property
-    def _cumulative_usage(self) -> TokenUsage:
-        return self._state.cumulative_usage
-
-    @_cumulative_usage.setter
-    def _cumulative_usage(self, value: TokenUsage) -> None:
-        self._state.cumulative_usage = value
-
-    @property
-    def _active_adapter_name(self) -> str | None:
-        return self._state.active_adapter_name
-
-    @_active_adapter_name.setter
-    def _active_adapter_name(self, value: str | None) -> None:
-        self._state.active_adapter_name = value
-
-    @property
-    def _abort_event(self) -> asyncio.Event:
-        return self._state.abort_event
-
-    @_abort_event.setter
-    def _abort_event(self, value: asyncio.Event) -> None:
-        self._state.abort_event = value
-
-    @property
-    def _steering_queue(self) -> asyncio.Queue[str]:
-        return self._state.steering_queue
-
-    @_steering_queue.setter
-    def _steering_queue(self, value: asyncio.Queue[str]) -> None:
-        self._state.steering_queue = value
-
-    @property
-    def _followup_queue(self) -> asyncio.Queue[str]:
-        return self._state.followup_queue
-
-    @_followup_queue.setter
-    def _followup_queue(self, value: asyncio.Queue[str]) -> None:
-        self._state.followup_queue = value
-
-    @property
-    def _on_skill_change(self) -> list[Callable]:
-        return self._state.on_skill_change
-
-    @_on_skill_change.setter
-    def _on_skill_change(self, value: list[Callable]) -> None:
-        self._state.on_skill_change = value
-
-    @property
-    def _context_files(self) -> list[Any]:
-        return self._state.context_files
-
-    @_context_files.setter
-    def _context_files(self, value: list[Any]) -> None:
-        self._state.context_files = value
-
-    @property
-    def _client(self) -> Any:
-        return self._state.client
-
-    @_client.setter
-    def _client(self, value: Any) -> None:
-        self._state.client = value
+    _conversation = _StateAttr("conversation")
+    _cumulative_usage = _StateAttr("cumulative_usage")
+    _active_adapter_name = _StateAttr("active_adapter_name")
+    _abort_event = _StateAttr("abort_event")
+    _steering_queue = _StateAttr("steering_queue")
+    _followup_queue = _StateAttr("followup_queue")
+    _on_skill_change = _StateAttr("on_skill_change")
+    _context_files = _StateAttr("context_files")
+    _client = _StateAttr("client")
 
     def checkpoint(self) -> None:
         """Write current harness state to session as a CustomEntry."""
