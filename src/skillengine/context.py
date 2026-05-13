@@ -20,13 +20,19 @@ Example:
 
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from skillengine.models import ImageContent, TextContent
 
 if TYPE_CHECKING:
     from skillengine.agent import AgentMessage
+
+# Summarizer callback: takes a list of messages, returns a string (sync or async).
+Summarizer = Callable[[list["AgentMessage"]], Any]
 
 
 # ---------------------------------------------------------------------------
@@ -305,3 +311,200 @@ class ContextManager:
     async def compact(self, messages: list[AgentMessage]) -> list[AgentMessage]:
         """Compact messages to fit within the budget."""
         return await self.compactor.compact(messages, self.budget_tokens)
+
+
+# ---------------------------------------------------------------------------
+# Tool-result truncation
+# ---------------------------------------------------------------------------
+
+
+def _truncate_text(text: str, max_chars: int, *, marker: str) -> str:
+    """Truncate text in the middle, preserving head + tail."""
+    if max_chars <= 0 or len(text) <= max_chars:
+        return text
+    if len(marker) >= max_chars:
+        return text[:max_chars]
+    remaining = max_chars - len(marker)
+    head = remaining // 2
+    tail = remaining - head
+    return text[:head] + marker + text[-tail:] if tail > 0 else text[:head] + marker
+
+
+class ToolResultTruncator(ContextCompactor):
+    """
+    Truncate large tool-result messages to a per-result character ceiling.
+
+    The most recent ``keep_recent`` tool-result messages are left untouched so
+    the model can act on fresh data. Older tool results are truncated in the
+    middle (head + tail preserved) with an elision marker. Non-tool messages
+    are never modified.
+
+    This compactor mutates copies of messages; the input list is not modified.
+    """
+
+    def __init__(
+        self,
+        max_chars: int = 4000,
+        keep_recent: int = 3,
+        marker: str = "\n\n…[truncated]…\n\n",
+    ) -> None:
+        if max_chars < 32:
+            raise ValueError("max_chars must be >= 32")
+        if keep_recent < 0:
+            raise ValueError("keep_recent must be >= 0")
+        self.max_chars = max_chars
+        self.keep_recent = keep_recent
+        self.marker = marker
+
+    def _truncate_content(self, content: Any) -> Any:
+        if isinstance(content, str):
+            return _truncate_text(content, self.max_chars, marker=self.marker)
+        if isinstance(content, list):
+            out: list[Any] = []
+            for block in content:
+                if isinstance(block, TextContent):
+                    out.append(
+                        TextContent(
+                            text=_truncate_text(block.text, self.max_chars, marker=self.marker)
+                        )
+                    )
+                else:
+                    out.append(block)
+            return out
+        return content
+
+    async def compact(
+        self,
+        messages: list[AgentMessage],
+        budget_tokens: int,
+    ) -> list[AgentMessage]:
+        # Identify indices of tool-result messages.
+        tool_indices = [i for i, m in enumerate(messages) if m.role == "tool"]
+        if not tool_indices:
+            return list(messages)
+
+        # Keep the trailing ``keep_recent`` tool results intact.
+        protected = set(tool_indices[-self.keep_recent :]) if self.keep_recent else set()
+
+        out: list[AgentMessage] = []
+        for i, msg in enumerate(messages):
+            if msg.role == "tool" and i not in protected:
+                new_content = self._truncate_content(msg.content)
+                if new_content is msg.content:
+                    out.append(msg)
+                else:
+                    out.append(replace(msg, content=new_content))
+            else:
+                out.append(msg)
+        return out
+
+
+# ---------------------------------------------------------------------------
+# Summarizing compactor
+# ---------------------------------------------------------------------------
+
+
+def _format_message_for_summary(msg: AgentMessage) -> str:
+    """Render a single message as plain text suitable for an LLM summarizer."""
+    role = msg.role.upper()
+    body = msg.text_content if hasattr(msg, "text_content") else str(msg.content)
+    if msg.tool_calls:
+        names = ", ".join(tc.get("name", "?") for tc in msg.tool_calls)
+        body = f"{body}\n[tool_calls: {names}]" if body else f"[tool_calls: {names}]"
+    if msg.name:
+        return f"{role}({msg.name}): {body}".strip()
+    return f"{role}: {body}".strip()
+
+
+class SummarizingCompactor(ContextCompactor):
+    """
+    Compact oldest messages into a single summary, keep recent tail intact.
+
+    When the message list exceeds ``budget_tokens``, this compactor calls
+    ``summarizer`` on a prefix of older messages and replaces them with a
+    single ``system`` message containing the summary. The last
+    ``keep_recent`` messages are always preserved verbatim.
+
+    The summarizer callable accepts a list of messages and returns a string
+    (sync or async). If it raises, the compactor falls back to dropping
+    the oldest messages — never crashes the agent loop.
+
+    Example:
+        async def llm_summarize(msgs):
+            return await client.summarize(msgs)
+
+        compactor = SummarizingCompactor(
+            summarizer=llm_summarize,
+            keep_recent=6,
+        )
+    """
+
+    def __init__(
+        self,
+        summarizer: Summarizer | None = None,
+        keep_recent: int = 6,
+        summary_role: str = "system",
+        summary_prefix: str = "[conversation-summary]\n",
+    ) -> None:
+        if keep_recent < 1:
+            raise ValueError("keep_recent must be >= 1")
+        self.summarizer = summarizer or _default_summarizer
+        self.keep_recent = keep_recent
+        self.summary_role = summary_role
+        self.summary_prefix = summary_prefix
+
+    async def _run_summarizer(self, msgs: list[AgentMessage]) -> str:
+        try:
+            result = self.summarizer(msgs)
+            if inspect.isawaitable(result):
+                result = await result
+            return str(result) if result is not None else ""
+        except Exception as exc:  # pragma: no cover - defensive
+            return f"(summary unavailable: {type(exc).__name__})"
+
+    async def compact(
+        self,
+        messages: list[AgentMessage],
+        budget_tokens: int,
+    ) -> list[AgentMessage]:
+        from skillengine.agent import AgentMessage as _AgentMessage  # local import avoids cycle
+
+        if not messages or estimate_messages_tokens(messages) <= budget_tokens:
+            return list(messages)
+
+        if len(messages) <= self.keep_recent:
+            return list(messages)
+
+        head = messages[: -self.keep_recent]
+        tail = messages[-self.keep_recent :]
+
+        summary_text = await self._run_summarizer(head)
+        summary_msg = _AgentMessage(
+            role=self.summary_role,
+            content=f"{self.summary_prefix}{summary_text}".rstrip(),
+            metadata={"compacted": True, "compacted_messages": len(head)},
+        )
+
+        compacted = [summary_msg, *tail]
+
+        # If still over budget, fall back to dropping oldest tail messages but
+        # always preserve the synthesized summary at index 0.
+        if estimate_messages_tokens(compacted) > budget_tokens and len(tail) > 1:
+            fallback = TokenBudgetCompactor()
+            summary_tokens = estimate_message_tokens(summary_msg)
+            tail_budget = max(1, budget_tokens - summary_tokens)
+            trimmed_tail = await fallback.compact(tail, tail_budget)
+            compacted = [summary_msg, *trimmed_tail]
+
+        return compacted
+
+
+def _default_summarizer(messages: list[AgentMessage]) -> str:
+    """Naive text summarizer: keep first + last lines per message, truncated."""
+    lines: list[str] = []
+    for m in messages:
+        text = _format_message_for_summary(m)
+        if len(text) > 200:
+            text = text[:120] + " … " + text[-60:]
+        lines.append(text)
+    return "\n".join(lines)
